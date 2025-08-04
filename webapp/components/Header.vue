@@ -31,9 +31,9 @@
               class="w-full bg-black/50 border border-gray-600 rounded px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-red-500"
             />
             <button
-              @click="openExtendedSearch"
+              @click="openSemanticSearch"
               class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
-              title="Open extended search"
+              title="Open semantic search"
             >
               ✨
             </button>
@@ -159,11 +159,11 @@
       </div>
     </div>
 
-    <!-- Extended Search Modal -->
-    <ExtendedSearchModal
-      :is-open="showExtendedSearchModal"
-      @close="showExtendedSearchModal = false"
-      @search="handleExtendedSearch"
+    <!-- Semantic Search Modal -->
+    <SemanticSearchModal
+      :is-open="showSemanticSearchModal"
+      @close="showSemanticSearchModal = false"
+      @search="handleSemanticSearch"
     />
   </header>
 </template>
@@ -214,14 +214,14 @@ const searchResults = ref([]);
 const showSearchResults = ref(false);
 const searchTimeout = ref(null);
 const searchContainer = ref(null);
-const showExtendedSearchModal = ref(false);
+const showSemanticSearchModal = ref(false);
 
-const openExtendedSearch = () => {
-  showExtendedSearchModal.value = true;
+const openSemanticSearch = () => {
+  showSemanticSearchModal.value = true;
 };
 
-const handleExtendedSearch = (description) => {
-  const params = { description, type: "extended" };
+const handleSemanticSearch = (description) => {
+  const params = { description, type: "semantic" };
   navigateTo({ path: "/search", query: params });
 };
 

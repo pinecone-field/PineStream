@@ -43,7 +43,7 @@ export default defineEventHandler(async (event) => {
       },
     };
   } catch (error) {
-    console.error("Error in extended search:", error);
+    console.error("Error in semantic search:", error);
     throw createError({
       statusCode: 500,
       statusMessage: "Internal Server Error",

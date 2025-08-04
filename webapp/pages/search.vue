@@ -22,7 +22,7 @@
               : 'bg-blue-900 text-blue-200'
           "
         >
-          {{ isExtendedSearch ? "✨ Extended Search" : "🔍 Token Search" }}
+          {{ isSemanticSearch ? "✨ Semantic Search" : "🔍 Token Search" }}
         </span>
       </div>
 
@@ -45,7 +45,7 @@
           No movies found for "{{ searchQuery }}"
         </div>
         <p class="text-gray-500">
-          Try different keywords or switch to extended search for more flexible
+          Try different keywords or switch to semantic search for more flexible
           matching.
         </p>
       </div>
@@ -81,7 +81,7 @@
 const route = useRoute();
 const movies = ref([]);
 const searchQuery = ref("");
-const isExtendedSearch = ref(false);
+const isSemanticSearch = ref(false);
 const pagination = ref({
   page: 1,
   limit: 20,
@@ -96,13 +96,13 @@ const loadSearchResults = async (page = 1) => {
     const searchType = route.query.type || "token";
 
     searchQuery.value = query;
-    isExtendedSearch.value = searchType === "extended";
+    isSemanticSearch.value = searchType === "semantic";
 
     let endpoint = "/api/search";
     let params = { q: query, page, limit: 20 };
 
-    if (isExtendedSearch.value) {
-      endpoint = "/api/search/extended";
+    if (isSemanticSearch.value) {
+      endpoint = "/api/search/semantic";
       params = { description: query, page, limit: 20 };
     }
 
