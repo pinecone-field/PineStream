@@ -15,36 +15,84 @@
         </NuxtLink>
 
         <!-- Search Bar (only show on home page) -->
-        <div v-if="showSearch" class="relative">
-          <input
-            v-model="searchQuery"
-            @input="handleSearch"
-            type="text"
-            placeholder="Search movies..."
-            class="bg-black/50 border border-gray-600 rounded px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-red-500"
-          />
-          <div
-            v-if="searchResults.length > 0"
-            class="absolute top-full left-0 right-0 bg-black/95 border border-gray-600 rounded mt-1 max-h-96 overflow-y-auto"
-          >
-            <div
-              v-for="movie in searchResults"
-              :key="movie.id"
-              @click="goToMovie(movie.id)"
-              class="p-3 hover:bg-gray-800 cursor-pointer flex items-center space-x-3"
+        <div
+          v-if="showSearch"
+          class="relative flex-1 max-w-md mx-4"
+          ref="searchContainer"
+        >
+          <div class="relative">
+            <input
+              v-model="searchQuery"
+              @input="handleSearch"
+              @focus="showSearchResults = true"
+              @keydown.enter="handleEnterPress"
+              type="text"
+              placeholder="Search movies..."
+              class="w-full bg-black/50 border border-gray-600 rounded px-4 py-2 text-white placeholder-gray-400 focus:outline-none focus:border-red-500"
+            />
+            <button
+              @click="openExtendedSearch"
+              class="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-white"
+              title="Open extended search"
             >
-              <img
-                v-if="movie.poster_url"
-                :src="movie.poster_url"
-                :alt="movie.title"
-                class="w-12 h-18 object-cover rounded"
-              />
-              <div>
-                <div class="font-semibold">{{ movie.title }}</div>
-                <div class="text-sm text-gray-400">
-                  {{ movie.release_date }}
+              ✨
+            </button>
+          </div>
+
+          <div
+            v-if="showSearchResults && searchResults.length > 0"
+            class="absolute top-full left-0 right-0 bg-black/95 border border-gray-600 rounded mt-1 max-h-96 z-50 flex flex-col"
+          >
+            <div class="overflow-y-auto flex-1">
+              <div
+                v-for="movie in searchResults"
+                :key="movie.id"
+                @click="goToMovie(movie.id)"
+                class="p-3 hover:bg-gray-800 cursor-pointer flex items-center space-x-3"
+              >
+                <img
+                  v-if="movie.poster_url"
+                  :src="movie.poster_url"
+                  :alt="movie.title"
+                  class="w-12 h-18 object-cover rounded flex-shrink-0"
+                />
+                <div
+                  v-else
+                  class="w-12 h-18 bg-gray-700 rounded flex items-center justify-center flex-shrink-0"
+                >
+                  <span class="text-xs text-gray-400">No Image</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                  <div class="font-semibold truncate">{{ movie.title }}</div>
+                  <div class="text-sm text-gray-400 truncate">
+                    {{ movie.release_date }} • ⭐
+                    {{ movie.vote_average?.toFixed(1) || "N/A" }}
+                  </div>
+                  <div
+                    v-if="movie.overview"
+                    class="text-xs text-gray-500 line-clamp-2"
+                  >
+                    {{ movie.overview }}
+                  </div>
                 </div>
               </div>
+            </div>
+            <div
+              v-if="searchResults.length === 0 && searchQuery"
+              class="p-3 text-gray-400 text-center"
+            >
+              No movies found
+            </div>
+            <div
+              v-if="searchResults.length > 0"
+              class="border-t border-gray-600 flex-shrink-0"
+            >
+              <button
+                @click="goToSearchResults"
+                class="w-full p-3 text-center text-blue-400 hover:bg-gray-800 cursor-pointer"
+              >
+                View All Results ({{ searchResults.length }})
+              </button>
             </div>
           </div>
         </div>
@@ -59,6 +107,13 @@
         </button>
       </div>
     </div>
+
+    <!-- Extended Search Modal -->
+    <ExtendedSearchModal
+      :is-open="showExtendedSearchModal"
+      @close="showExtendedSearchModal = false"
+      @search="handleExtendedSearch"
+    />
   </header>
 </template>
 
@@ -83,27 +138,83 @@ const handleScroll = () => {
   isScrolled.value = window.scrollY > 10;
 };
 
+// Handle click outside search results
+const handleClickOutside = (event) => {
+  if (searchContainer.value && !searchContainer.value.contains(event.target)) {
+    showSearchResults.value = false;
+  }
+};
+
 // Add scroll listener on mount
 onMounted(() => {
   window.addEventListener("scroll", handleScroll);
+  document.addEventListener("click", handleClickOutside);
 });
 
 // Remove scroll listener on unmount
 onUnmounted(() => {
   window.removeEventListener("scroll", handleScroll);
+  document.removeEventListener("click", handleClickOutside);
 });
 
 // Search functionality
 const searchQuery = ref("");
 const searchResults = ref([]);
+const showSearchResults = ref(false);
+const searchTimeout = ref(null);
+const searchContainer = ref(null);
+const showExtendedSearchModal = ref(false);
+
+const openExtendedSearch = () => {
+  showExtendedSearchModal.value = true;
+};
+
+const handleExtendedSearch = (description) => {
+  const params = { description, type: "extended" };
+  navigateTo({ path: "/search", query: params });
+};
 
 const handleSearch = () => {
-  // TODO: Implement search
-  searchResults.value = [];
+  // Clear previous timeout
+  if (searchTimeout.value) {
+    clearTimeout(searchTimeout.value);
+  }
+
+  // Set new timeout for debounced search
+  searchTimeout.value = setTimeout(async () => {
+    if (!searchQuery.value.trim()) {
+      searchResults.value = [];
+      return;
+    }
+
+    try {
+      const response = await $fetch("/api/search", {
+        params: { q: searchQuery.value },
+      });
+      searchResults.value = response.movies || [];
+    } catch (error) {
+      console.error("Search error:", error);
+      searchResults.value = [];
+    }
+  }, 300); // 300ms debounce
 };
 
 const goToMovie = (id) => {
   navigateTo(`/movie/${id}`);
+};
+
+const handleEnterPress = () => {
+  if (searchQuery.value.trim()) {
+    goToSearchResults();
+  }
+};
+
+const goToSearchResults = () => {
+  if (!searchQuery.value.trim()) return;
+
+  const params = { q: searchQuery.value, type: "token" };
+  showSearchResults.value = false;
+  navigateTo({ path: "/search", query: params });
 };
 
 const goBack = () => {
@@ -128,5 +239,13 @@ const goBack = () => {
 
 .overflow-y-auto::-webkit-scrollbar-thumb:hover {
   background: #888;
+}
+
+/* Line clamp utility */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
 }
 </style>
