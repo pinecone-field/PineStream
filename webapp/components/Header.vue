@@ -1,6 +1,11 @@
 <template>
   <header
-    class="fixed top-0 left-0 right-0 z-50 bg-gradient-to-b from-black/80 to-transparent"
+    class="fixed top-0 left-0 right-0 z-50 transition-all duration-300"
+    :class="
+      isScrolled
+        ? 'bg-black/95 backdrop-blur-sm'
+        : 'bg-gradient-to-b from-black/80 to-transparent'
+    "
   >
     <div class="container mx-auto px-4 py-4">
       <div class="flex items-center justify-between">
@@ -68,6 +73,24 @@ const props = defineProps({
     type: Boolean,
     default: false,
   },
+});
+
+// Scroll detection
+const isScrolled = ref(false);
+
+// Handle scroll events
+const handleScroll = () => {
+  isScrolled.value = window.scrollY > 10;
+};
+
+// Add scroll listener on mount
+onMounted(() => {
+  window.addEventListener("scroll", handleScroll);
+});
+
+// Remove scroll listener on unmount
+onUnmounted(() => {
+  window.removeEventListener("scroll", handleScroll);
 });
 
 // Search functionality
