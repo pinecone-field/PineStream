@@ -14,15 +14,21 @@ The search uses SQL LIKE queries with wildcards (`%searchterm%`) to find partial
 
 ### Semantic Search (To Be Implemented)
 
-The semantic search endpoint is set up at `/api/search/semantic` but needs implementation by workshop participants.
+The semantic search endpoint is set up at `/api/search/semantic` and uses Pinecone for vector similarity search. Students need to implement the embedding generation and querying logic.
 
 ## Files Modified/Created
 
 1. **`/server/api/search.ts`** - Token-based search implementation
-2. **`/server/api/search/semantic.ts`** - Semantic search endpoint (placeholder)
-3. **`/components/Header.vue`** - Search UI with toggle between modes
-4. **`/pages/search.vue`** - Dedicated search results page
-5. **`SEARCH_IMPLEMENTATION.md`** - This documentation
+2. **`/server/api/search/semantic.ts`** - Semantic search endpoint (uses Pinecone)
+3. **`/server/utils/pinecone.ts`** - Centralized Pinecone configuration
+4. **`/components/Header.vue`** - Search UI with toggle between modes
+5. **`/pages/search.vue`** - Dedicated search results page
+6. **`/server/api/admin/stats.ts`** - Admin stats with Pinecone integration
+7. **`/server/api/admin/generate-dense-embeddings.ts`** - Dense embedding generation
+8. **`/server/api/admin/generate-sparse-embeddings.ts`** - Sparse embedding generation
+9. **`/server/api/movies/[id]/similar.ts`** - Similar movies using Pinecone
+10. **`SEARCH_IMPLEMENTATION.md`** - This documentation
+11. **`PINECONE_SETUP.md`** - Pinecone setup guide
 
 ## Testing the Implementation
 
@@ -40,7 +46,7 @@ The semantic search endpoint is set up at `/api/search/semantic` but needs imple
 3. **Test semantic search:**
    - Click the ✨ button to switch to semantic search
    - Type descriptions like "movies about space exploration" or "romantic comedies"
-   - Implement the semantic search functionality
+   - Implement the semantic search functionality using Pinecone
 
 ## UI Features
 
@@ -58,4 +64,4 @@ The movies table has these searchable fields:
 - `overview` (TEXT)
 - `genre` (TEXT)
 
-For semantic search, focus on the `overview` field as it contains the most descriptive content.
+For semantic search, focus on the `overview` field as it contains the most descriptive content. Use Pinecone for vector similarity search with dense embeddings.

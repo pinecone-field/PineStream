@@ -14,15 +14,7 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    // TODO: Implement actual similar movies logic
-    // This is a placeholder implementation for trainees to complete
-
-    // For now, return a placeholder response
-    // Trainees should implement:
-    // 1. Get the current movie's genre, year, rating, etc.
-    // 2. Find movies with similar characteristics
-    // 3. Return a list of similar movies
-
+    // Get the current movie
     const stmt = db.prepare("SELECT * FROM movies WHERE id = ?");
     const currentMovie = stmt.get(id) as any;
 
@@ -33,7 +25,9 @@ export default defineEventHandler(async (event) => {
       });
     }
 
+    // PLACEHOLDER: For now, return an empty array (no similar movies)
     const similarMovies = [] as any[];
+    // END PLACEHOLDER
 
     return {
       currentMovie: {
