@@ -72,6 +72,18 @@
                   Play
                 </button>
                 <button
+                  @click="toggleWatched"
+                  :class="
+                    isWatched
+                      ? 'bg-green-600 hover:bg-green-700'
+                      : 'bg-gray-600/80 hover:bg-gray-600'
+                  "
+                  class="text-white px-8 py-3 rounded font-semibold flex items-center"
+                >
+                  <span class="mr-2">{{ isWatched ? "✓" : "👁" }}</span>
+                  {{ isWatched ? "Watched" : "Mark as Watched" }}
+                </button>
+                <button
                   class="bg-gray-600/80 text-white px-8 py-3 rounded font-semibold hover:bg-gray-600"
                 >
                   Add to List
@@ -175,6 +187,7 @@ const movie = ref(null);
 const loading = ref(true);
 const similarMovies = ref(null);
 const similarMoviesLoading = ref(false);
+const isWatched = ref(false);
 
 // Load movie data
 const loadMovie = async () => {
@@ -206,10 +219,46 @@ const loadSimilarMovies = async () => {
   }
 };
 
+// Check if movie is watched
+const checkWatchedStatus = async () => {
+  try {
+    const response = await $fetch("/api/user/watched");
+    const watchedMovies = response.watchedMovies;
+    isWatched.value = watchedMovies.some(
+      (watched) => watched.id === parseInt(route.params.id)
+    );
+  } catch (error) {
+    console.error("Error checking watched status:", error);
+  }
+};
+
+// Toggle watched status
+const toggleWatched = async () => {
+  try {
+    if (isWatched.value) {
+      // Remove from watched
+      await $fetch("/api/user/watched", {
+        method: "DELETE",
+        body: { movieId: parseInt(route.params.id) },
+      });
+    } else {
+      // Add to watched
+      await $fetch("/api/user/watched", {
+        method: "POST",
+        body: { movieId: parseInt(route.params.id) },
+      });
+    }
+    isWatched.value = !isWatched.value;
+  } catch (error) {
+    console.error("Error toggling watched status:", error);
+  }
+};
+
 // Load movie and similar movies when component mounts
 onMounted(() => {
   loadMovie();
   loadSimilarMovies();
+  checkWatchedStatus();
 });
 
 // Watch for route changes
@@ -218,6 +267,7 @@ watch(
   () => {
     loadMovie();
     loadSimilarMovies();
+    checkWatchedStatus();
   }
 );
 </script>

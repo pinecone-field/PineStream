@@ -126,13 +126,23 @@ const handleSearch = () => {
   }
 };
 
-// Restore previous query when modal opens
+// Block page scrolling when modal is open
 watch(
   () => props.isOpen,
   (newValue) => {
     if (newValue) {
+      // Block scrolling
+      document.body.style.overflow = "hidden";
       searchDescription.value = previousQuery.value;
+    } else {
+      // Restore scrolling
+      document.body.style.overflow = "";
     }
   }
 );
+
+// Clean up on component unmount
+onUnmounted(() => {
+  document.body.style.overflow = "";
+});
 </script>

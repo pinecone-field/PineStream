@@ -1,169 +1,90 @@
-# PineStream - Workshop Sample App
+# PineStream - Movie Streaming Platform
 
-A modern movie streaming platform built with Nuxt 3, designed as a starting point for workshops. This sample app provides a foundation for participants to implement advanced features like search, recommendations, and RAG (Retrieval-Augmented Generation).
+A modern movie streaming platform built with Nuxt 3 and SQLite.
 
-## 🎯 Workshop Objectives
+## Features
 
-This sample app serves as the **starting point** for workshop participants. During the workshop, you will implement:
+### User Profile & Watched Movies
 
-### 🔍 **Search Functionality**
+The application now includes a comprehensive user profile system that allows users to:
 
-- Implement real-time movie search
-- Add search filters (genre, year, rating)
-- Create search suggestions and autocomplete
+- **View Profile**: Access your profile page to see your movie watching statistics
+- **Mark Movies as Watched**: Add movies to your watched list from any movie page or search results
+- **Remove from Watched**: Remove movies from your watched list
+- **Clear All Watched**: Reset your entire watched history
+- **View Statistics**: See your total watched movies, average rating, and favorite genre
 
-### 🧠 **Recommendation System**
+### How to Use
 
-- Build a movie recommendation engine
-- Implement collaborative filtering
-- Add content-based recommendations
-- Create personalized movie suggestions
+1. **Access Profile**: Click the profile icon in the top-right corner of any page
+2. **Mark Movies as Watched**:
+   - On movie detail pages: Click the "Mark as Watched" button
+   - On movie cards: Hover over a movie and click the eye icon
+3. **Add Movies to Watched**:
+   - Go to your profile page
+   - Click "Add Movie to Watched"
+   - Search for a movie and click to add it
+4. **Remove Movies**:
+   - On your profile page: Hover over a watched movie and click the X button
+   - On movie detail pages: Click the "Watched" button to toggle
+5. **Clear All Watched**: On your profile page, click "Clear All Watched"
 
-### 🤖 **RAG (Retrieval-Augmented Generation)**
+### Database Schema
 
-- Integrate with AI models for movie descriptions
-- Generate personalized movie summaries
-- Create AI-powered movie recommendations
-- Implement conversational movie search
+The application uses SQLite with the following tables:
 
-## 🚀 Current Features (Starting Point)
+```sql
+-- Movies table (existing)
+CREATE TABLE movies (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    title TEXT NOT NULL,
+    overview TEXT,
+    release_date TEXT,
+    popularity REAL,
+    vote_count INTEGER,
+    vote_average REAL,
+    original_language TEXT,
+    genre TEXT,
+    poster_url TEXT
+);
 
-- 🎬 Browse movies with pagination
-- 📱 Responsive design with Tailwind CSS
-- 🗄️ SQLite database with 9,828 movies
-- 📄 Individual movie pages
-- 🔍 Search UI (ready for implementation)
-- 🔗 Similar movies section (placeholder)
-
-## 🛠️ Tech Stack
-
-- **Framework**: Nuxt 3
-- **Styling**: Tailwind CSS
-- **Database**: SQLite with better-sqlite3
-- **Package Manager**: pnpm
-
-## 📋 Workshop Setup
-
-1. **Clone and Install**:
-
-   ```bash
-   pnpm install
-   ```
-
-2. **Verify Database**:
-
-   - Ensure `movies.db` is in the project root
-   - Contains 9,828 movies with full metadata
-
-3. **Start Development Server**:
-
-   ```bash
-   pnpm dev
-   ```
-
-4. **Open Application**:
-   - Navigate to [http://localhost:3000](http://localhost:3000)
-
-## 📁 Project Structure
-
-```
-webapp/
-├── pages/                 # Vue pages (home and movie details)
-├── server/api/           # API endpoints for movies
-│   ├── movies/           # Movie CRUD operations
-│   └── search.ts         # Search endpoint (placeholder)
-├── movies.db             # SQLite database with movie data
-└── README.md            # This file
+-- User watched movies table (new)
+CREATE TABLE user_watched_movies (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    movie_id INTEGER NOT NULL,
+    watched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (movie_id) REFERENCES movies(id) ON DELETE CASCADE
+);
 ```
 
-## 🔌 API Endpoints
+### API Endpoints
 
-### Current (Starting Point)
+- `GET /api/user/watched` - Get all watched movies
+- `POST /api/user/watched` - Add movie to watched list
+- `DELETE /api/user/watched` - Remove movie from watched list
+- `POST /api/user/clear-watched` - Clear all watched movies
 
-- `GET /api/movies` - Get all movies with pagination
-- `GET /api/movies/[id]` - Get specific movie by ID
-- `GET /api/search` - Search movies (placeholder)
+### Components
 
-### Workshop Implementation Targets
+- `MovieCard.vue` - Reusable movie card component with watched status
+- `Header.vue` - Updated with profile navigation
+- `Profile.vue` - User profile page with watched movies management
 
-- `POST /api/search` - Implement real search functionality
-- `GET /api/recommendations` - Build recommendation system
-- `POST /api/rag` - Implement RAG features
+## Development
 
-## 🎯 Workshop Tasks
+```bash
+# Install dependencies
+npm install
 
-### Phase 1: Search Implementation
+# Start development server
+npm run dev
 
-- [ ] Implement movie search by title
-- [ ] Add genre and year filters
-- [ ] Create search autocomplete
-- [ ] Add search result highlighting
+# Build for production
+npm run build
+```
 
-### Phase 2: Recommendation System
+## Notes
 
-- [ ] Build content-based recommendations
-- [ ] Implement collaborative filtering
-- [ ] Add personalized movie suggestions
-- [ ] Create recommendation algorithms
-
-### Phase 3: RAG Integration
-
-- [ ] Integrate with AI/LLM APIs
-- [ ] Generate movie descriptions
-- [ ] Create conversational search
-- [ ] Implement AI-powered recommendations
-
-## 📊 Database Schema
-
-The `movies.db` contains the following fields:
-
-- `id` - Unique movie identifier
-- `title` - Movie title
-- `overview` - Movie description
-- `release_date` - Release date
-- `popularity` - Popularity score
-- `vote_count` - Number of votes
-- `vote_average` - Average rating
-- `original_language` - Original language
-- `genre` - Movie genre
-- `poster_url` - Movie poster image URL
-
-## 🎨 UI Components Ready
-
-- Netflix-style responsive layout
-- Movie grid with hover effects
-- Hero section with featured movie
-- Search bar with dropdown
-- Movie detail pages
-- Pagination controls
-
-## 🚀 Getting Started for Workshop
-
-1. **Explore the Current App**:
-
-   - Browse movies on the home page
-   - Click on movies to see details
-   - Notice the placeholder search and similar movies sections
-
-2. **Understand the Codebase**:
-
-   - Review the API endpoints in `/server/api/`
-   - Examine the Vue components in `/pages/`
-   - Check the database structure
-
-3. **Ready for Implementation**:
-   - Search functionality is ready for your code
-   - Recommendation system can be built on the existing structure
-   - RAG features can be integrated seamlessly
-
-## 📝 Notes for Participants
-
-- All placeholder features are clearly marked with "TODO" comments
-- The database is pre-populated with rich movie data
-- The UI is fully responsive and ready for new features
-- API structure is designed to be easily extensible
-- Tailwind CSS classes are used for consistent styling
-
----
-
-**Happy coding! 🎬✨**
+- This is a demo application with no actual authentication
+- All user data is stored locally in SQLite
+- The watched movies feature works for a single user session

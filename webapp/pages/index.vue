@@ -39,38 +39,12 @@
     <section class="container mx-auto px-4 py-8 pb-4">
       <h3 class="text-2xl font-bold mb-6">Popular Movies</h3>
       <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-        <div
+        <MovieCard
           v-for="movie in movies"
           :key="movie.id"
-          @click="goToMovie(movie.id)"
-          class="group cursor-pointer transition-transform hover:scale-105"
-        >
-          <div class="relative">
-            <img
-              v-if="movie.poster_url"
-              :src="movie.poster_url"
-              :alt="movie.title"
-              class="w-full h-64 object-cover rounded"
-            />
-            <div
-              v-else
-              class="w-full h-64 bg-gray-800 rounded flex items-center justify-center"
-            >
-              <span class="text-gray-400">No Image</span>
-            </div>
-            <div
-              class="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors rounded"
-            ></div>
-          </div>
-          <div class="mt-2">
-            <h4 class="font-semibold text-sm truncate">{{ movie.title }}</h4>
-            <div class="flex items-center space-x-2 text-xs text-gray-400">
-              <span>{{ movie.release_date }}</span>
-              <span>•</span>
-              <span>⭐ {{ movie.vote_average?.toFixed(1) || "N/A" }}</span>
-            </div>
-          </div>
-        </div>
+          :movie="movie"
+          @click="goToMovie"
+        />
       </div>
 
       <!-- Pagination -->
