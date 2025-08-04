@@ -90,39 +90,69 @@
       <!-- Similar Movies Section -->
       <section class="container mx-auto px-4 py-8 pb-4">
         <h2 class="text-2xl font-bold mb-6">Similar Movies</h2>
-        <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
-          <!-- Placeholder for similar movies -->
-          <div
-            v-for="i in 6"
-            :key="i"
+
+        <!-- Loading State for Similar Movies -->
+        <div
+          v-if="similarMoviesLoading"
+          class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4"
+        >
+          <div v-for="i in 6" :key="i" class="animate-pulse">
+            <div class="w-full h-64 bg-gray-800 rounded"></div>
+            <div class="mt-2">
+              <div class="h-4 bg-gray-800 rounded mb-1"></div>
+              <div class="h-3 bg-gray-800 rounded"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Similar Movies Grid -->
+        <div
+          v-else-if="similarMovies && similarMovies.length > 0"
+          class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4"
+        >
+          <NuxtLink
+            v-for="similarMovie in similarMovies"
+            :key="similarMovie.id"
+            :to="`/movie/${similarMovie.id}`"
             class="group cursor-pointer transition-transform hover:scale-105"
           >
             <div class="relative">
+              <img
+                v-if="similarMovie.poster_url"
+                :src="similarMovie.poster_url"
+                :alt="similarMovie.title"
+                class="w-full h-64 object-cover rounded"
+              />
               <div
+                v-else
                 class="w-full h-64 bg-gray-800 rounded flex items-center justify-center"
               >
-                <span class="text-gray-400">Coming Soon</span>
+                <span class="text-gray-400 text-sm">No Poster</span>
               </div>
               <div
                 class="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors rounded"
               ></div>
             </div>
             <div class="mt-2">
-              <h4 class="font-semibold text-sm truncate text-gray-400">
-                Similar Movie {{ i }}
+              <h4 class="font-semibold text-sm truncate text-white">
+                {{ similarMovie.title }}
               </h4>
               <div class="flex items-center space-x-2 text-xs text-gray-500">
-                <span>2024</span>
+                <span>{{
+                  similarMovie.release_date?.split("-")[0] || "N/A"
+                }}</span>
                 <span>•</span>
-                <span>⭐ N/A</span>
+                <span
+                  >⭐ {{ similarMovie.vote_average?.toFixed(1) || "N/A" }}</span
+                >
               </div>
             </div>
-          </div>
+          </NuxtLink>
         </div>
 
-        <!-- TODO: Implement similar movies functionality -->
-        <div class="mt-4 text-center text-gray-400">
-          <p>Similar movies feature will be implemented soon</p>
+        <!-- No Similar Movies State -->
+        <div v-else class="text-center text-gray-400 py-8">
+          <p>No similar movies found</p>
         </div>
       </section>
     </div>
@@ -143,6 +173,8 @@
 const route = useRoute();
 const movie = ref(null);
 const loading = ref(true);
+const similarMovies = ref(null);
+const similarMoviesLoading = ref(false);
 
 // Load movie data
 const loadMovie = async () => {
@@ -159,9 +191,25 @@ const loadMovie = async () => {
   }
 };
 
-// Load movie when component mounts
+// Load similar movies data
+const loadSimilarMovies = async () => {
+  try {
+    similarMoviesLoading.value = true;
+    const movieId = route.params.id;
+    const data = await $fetch(`/api/movies/${movieId}/similar`);
+    similarMovies.value = data.similarMovies;
+  } catch (error) {
+    console.error("Error loading similar movies:", error);
+    similarMovies.value = [];
+  } finally {
+    similarMoviesLoading.value = false;
+  }
+};
+
+// Load movie and similar movies when component mounts
 onMounted(() => {
   loadMovie();
+  loadSimilarMovies();
 });
 
 // Watch for route changes
@@ -169,6 +217,7 @@ watch(
   () => route.params.id,
   () => {
     loadMovie();
+    loadSimilarMovies();
   }
 );
 </script>
