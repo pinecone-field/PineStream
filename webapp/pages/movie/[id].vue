@@ -1,20 +1,7 @@
 <template>
-  <div class="min-h-screen bg-black text-white">
+  <div class="bg-black text-white">
     <!-- Header -->
-    <header
-      class="fixed top-0 left-0 right-0 z-50 bg-gradient-to-b from-black/80 to-transparent"
-    >
-      <div class="container mx-auto px-4 py-4">
-        <div class="flex items-center justify-between">
-          <NuxtLink to="/" class="text-2xl font-bold text-red-600"
-            >PineStream</NuxtLink
-          >
-          <button @click="goBack" class="text-white hover:text-gray-300">
-            ← Back
-          </button>
-        </div>
-      </div>
-    </header>
+    <Header :show-search="false" :show-back-button="true" />
 
     <!-- Loading State -->
     <div v-if="loading" class="flex items-center justify-center h-screen">
@@ -101,7 +88,7 @@
       </section>
 
       <!-- Similar Movies Section -->
-      <section class="container mx-auto px-4 py-8">
+      <section class="container mx-auto px-4 py-8 pb-4">
         <h2 class="text-2xl font-bold mb-6">Similar Movies</h2>
         <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
           <!-- Placeholder for similar movies -->
@@ -170,11 +157,6 @@ const loadMovie = async () => {
   } finally {
     loading.value = false;
   }
-};
-
-// Go back function
-const goBack = () => {
-  navigateTo("/");
 };
 
 // Load movie when component mounts
