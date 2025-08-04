@@ -4,8 +4,9 @@
   >
     <div class="container mx-auto px-4 py-4">
       <div class="flex items-center justify-between">
-        <NuxtLink to="/" class="text-2xl font-bold text-red-600">
-          PineStream
+        <NuxtLink to="/" class="flex items-center space-x-2">
+          <img src="/logo.png" alt="PineStream" class="w-8 h-8" />
+          <span class="text-2xl font-bold text-red-600">PineStream</span>
         </NuxtLink>
 
         <!-- Search Bar (only show on home page) -->
