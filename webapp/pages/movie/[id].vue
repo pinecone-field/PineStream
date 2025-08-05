@@ -84,16 +84,6 @@
                   <span class="mr-2">{{ isWatched ? "✓" : "👁" }}</span>
                   {{ isWatched ? "Watched" : "Mark as Watched" }}
                 </button>
-                <button
-                  class="bg-gray-600/80 text-white px-8 py-3 rounded font-semibold hover:bg-gray-600"
-                >
-                  Add to List
-                </button>
-                <button
-                  class="bg-gray-600/80 text-white px-8 py-3 rounded font-semibold hover:bg-gray-600"
-                >
-                  Share
-                </button>
               </div>
             </div>
           </div>

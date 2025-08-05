@@ -27,6 +27,7 @@
               Play
             </button>
             <button
+              @click="goToMovie(featuredMovie.id)"
               class="bg-gray-600/80 text-white px-8 py-3 rounded font-semibold hover:bg-gray-600"
             >
               More Info
