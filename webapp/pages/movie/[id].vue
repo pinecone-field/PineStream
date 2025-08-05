@@ -66,6 +66,7 @@
               <!-- Action Buttons -->
               <div class="flex space-x-4">
                 <button
+                  @click="playMovie"
                   class="bg-white text-black px-8 py-3 rounded font-semibold hover:bg-gray-200 flex items-center"
                 >
                   <span class="mr-2">▶</span>
@@ -178,6 +179,9 @@
         </NuxtLink>
       </div>
     </div>
+
+    <!-- Video Player -->
+    <VideoPlayer :show="showVideoPlayer" @close="closeVideoPlayer" />
   </div>
 </template>
 
@@ -188,6 +192,7 @@ const loading = ref(true);
 const similarMovies = ref(null);
 const similarMoviesLoading = ref(false);
 const isWatched = ref(false);
+const showVideoPlayer = ref(false);
 
 // Load movie data
 const loadMovie = async () => {
@@ -252,6 +257,20 @@ const toggleWatched = async () => {
   } catch (error) {
     console.error("Error toggling watched status:", error);
   }
+};
+
+// Play movie function
+const playMovie = () => {
+  showVideoPlayer.value = true;
+  // Mark as watched when playing
+  if (!isWatched.value) {
+    toggleWatched();
+  }
+};
+
+// Close video player
+const closeVideoPlayer = () => {
+  showVideoPlayer.value = false;
 };
 
 // Load movie and similar movies when component mounts

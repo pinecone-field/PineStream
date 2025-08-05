@@ -21,6 +21,7 @@
           </p>
           <div class="flex space-x-4">
             <button
+              @click="playMovie"
               class="bg-white text-black px-8 py-3 rounded font-semibold hover:bg-gray-200"
             >
               Play
@@ -71,6 +72,9 @@
         </button>
       </div>
     </section>
+
+    <!-- Video Player -->
+    <VideoPlayer :show="showVideoPlayer" @close="closeVideoPlayer" />
   </div>
 </template>
 
@@ -83,6 +87,7 @@ const pagination = ref({
   total: 0,
   totalPages: 0,
 });
+const showVideoPlayer = ref(false);
 
 // Load movies
 const loadMovies = async (page = 1) => {
@@ -110,6 +115,16 @@ const loadPage = (page) => {
 // Navigate to movie page
 const goToMovie = (id) => {
   navigateTo(`/movie/${id}`);
+};
+
+// Play movie function
+const playMovie = () => {
+  showVideoPlayer.value = true;
+};
+
+// Close video player
+const closeVideoPlayer = () => {
+  showVideoPlayer.value = false;
 };
 
 // Load initial data
