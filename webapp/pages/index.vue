@@ -37,9 +37,34 @@
       </div>
     </section>
 
+    <!-- Recommendations Section -->
+    <section class="container mx-auto px-4 py-8">
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="text-2xl font-bold">Recommended for You</h3>
+        <div class="text-sm text-gray-400">
+          Based on {{ watchedCount }} watched movies
+        </div>
+      </div>
+      <div
+        v-if="recommendations.length > 0"
+        class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4"
+      >
+        <MovieCard
+          v-for="movie in recommendations"
+          :key="movie.id"
+          :movie="movie"
+          @click="goToMovie"
+        />
+      </div>
+      <!-- No Recommendations State -->
+      <div v-else class="text-center text-gray-400 py-8">
+        <p>No recommendations found</p>
+      </div>
+    </section>
+
     <!-- Movies Grid -->
     <section class="container mx-auto px-4 py-8 pb-4">
-      <h3 class="text-2xl font-bold mb-6">Popular Movies</h3>
+      <h3 class="text-2xl font-bold mb-6">All Movies</h3>
       <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
         <MovieCard
           v-for="movie in movies"
@@ -82,6 +107,8 @@
 <script setup>
 const movies = ref([]);
 const featuredMovie = ref(null);
+const recommendations = ref([]);
+const watchedCount = ref(0);
 const pagination = ref({
   page: 1,
   limit: 20,
@@ -103,6 +130,17 @@ const loadMovies = async (page = 1) => {
     }
   } catch (error) {
     console.error("Error loading movies:", error);
+  }
+};
+
+// Load recommendations
+const loadRecommendations = async () => {
+  try {
+    const response = await $fetch("/api/user/recommendations");
+    recommendations.value = response.recommendations;
+    watchedCount.value = response.watchedCount;
+  } catch (error) {
+    console.error("Error loading recommendations:", error);
   }
 };
 
@@ -131,6 +169,7 @@ const closeVideoPlayer = () => {
 // Load initial data
 onMounted(() => {
   loadMovies();
+  loadRecommendations();
 });
 </script>
 
