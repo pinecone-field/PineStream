@@ -1,7 +1,7 @@
-import Database from 'better-sqlite3';
-import { defineEventHandler, getQuery } from 'h3';
+import Database from "better-sqlite3";
+import { defineEventHandler, getQuery } from "h3";
 
-const db = new Database('movies.db');
+const db = new Database("movies.db");
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event);
@@ -9,9 +9,11 @@ export default defineEventHandler(async (event) => {
   const limit = parseInt(query.limit as string) || 20;
   const offset = (page - 1) * limit;
 
+  console.log(`Movies API - Page: ${page}, Limit: ${limit}, Offset: ${offset}`);
+
   try {
     // Get total count
-    const countStmt = db.prepare('SELECT COUNT(*) as total FROM movies');
+    const countStmt = db.prepare("SELECT COUNT(*) as total FROM movies");
     const { total } = countStmt.get() as { total: number };
 
     // Get movies with pagination
@@ -22,20 +24,26 @@ export default defineEventHandler(async (event) => {
     `);
     const movies = moviesStmt.all(limit, offset) as any[];
 
+    const totalPages = Math.ceil(total / limit);
+
+    console.log(
+      `Movies API - Total: ${total}, Total Pages: ${totalPages}, Movies returned: ${movies.length}`
+    );
+
     return {
       movies,
       pagination: {
         page,
         limit,
         total,
-        totalPages: Math.ceil(total / limit)
-      }
+        totalPages,
+      },
     };
   } catch (error) {
-    console.error('Error fetching movies:', error);
+    console.error("Error fetching movies:", error);
     throw createError({
       statusCode: 500,
-      statusMessage: 'Internal Server Error'
+      statusMessage: "Internal Server Error",
     });
   }
-}); 
+});
