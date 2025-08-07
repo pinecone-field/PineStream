@@ -26,9 +26,34 @@ export async function initPinecone() {
 
 // Helper function to ensure required indexes exist
 async function ensureIndexesExist(pc: Pinecone) {
-  // PLACEHOLDER:
-  // Check if indexes exist and create those that don't
-  // END PLACEHOLDER
+  const indexes = await pc.listIndexes();
+  const indexNames = indexes.indexes?.map((index) => index.name) || [];
+
+  if (!indexNames.includes(PINECONE_INDEXES.MOVIES_DENSE)) {
+    await pc.createIndexForModel({
+      name: PINECONE_INDEXES.MOVIES_DENSE,
+      cloud: "aws",
+      region: "us-east-1",
+      embed: {
+        model: "multilingual-e5-large",
+        fieldMap: { text: "text" },
+      },
+      waitUntilReady: true,
+    });
+  }
+
+  if (!indexNames.includes(PINECONE_INDEXES.MOVIES_SPARSE)) {
+    await pc.createIndexForModel({
+      name: PINECONE_INDEXES.MOVIES_SPARSE,
+      cloud: "aws",
+      region: "us-east-1",
+      embed: {
+        model: "pinecone-sparse-english-v0",
+        fieldMap: { text: "text" },
+      },
+      waitUntilReady: true,
+    });
+  }
 
   console.log("Index validation completed");
 }
