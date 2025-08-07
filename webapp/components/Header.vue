@@ -158,14 +158,16 @@
         </div>
       </div>
     </div>
+  </header>
 
-    <!-- Semantic Search Modal -->
+  <!-- Semantic Search Modal - rendered outside header to avoid positioning issues -->
+  <Teleport to="body">
     <SemanticSearchModal
       :is-open="showSemanticSearchModal"
       @close="showSemanticSearchModal = false"
       @search="handleSemanticSearch"
     />
-  </header>
+  </Teleport>
 </template>
 
 <script setup>
