@@ -223,8 +223,7 @@ const openSemanticSearch = () => {
 };
 
 const handleSemanticSearch = (description) => {
-  const params = { description, type: "semantic" };
-  navigateTo({ path: "/search", query: params });
+  navigateTo({ path: "/search/semantic", query: { description } });
 };
 
 const handleSearch = () => {
@@ -265,9 +264,8 @@ const handleEnterPress = () => {
 const goToSearchResults = () => {
   if (!searchQuery.value.trim()) return;
 
-  const params = { q: searchQuery.value, type: "token" };
   showSearchResults.value = false;
-  navigateTo({ path: "/search", query: params });
+  navigateTo({ path: "/search/token", query: { q: searchQuery.value } });
 };
 
 const goBack = () => {

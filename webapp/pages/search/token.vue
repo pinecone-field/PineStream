@@ -7,22 +7,8 @@
     <section class="container mx-auto px-4 py-8 pt-24">
       <div class="mb-6">
         <h1 class="text-3xl font-bold mb-2">
-          <span>
-            {{ isSemanticSearch ? "✨ Semantic " : "🔍 Token " }}
-          </span>
-          Search Results
+          <span>🔍 Token</span> Search Results
         </h1>
-        <!-- Search Type Indicator -->
-        <div class="mb-6">
-          <!-- Similarity Score Info for Semantic Search -->
-          <div
-            v-if="isSemanticSearch && movies.length > 0"
-            class="mt-2 text-sm text-purple-300"
-          >
-            <span class="font-medium">💡</span> Results are ranked by similarity
-            to your query. Higher percentages indicate better matches.
-          </div>
-        </div>
         <p class="text-gray-400">
           The top {{ pagination.total }} movies we found for "{{ searchQuery }}"
         </p>
@@ -176,7 +162,6 @@ const route = useRoute();
 const router = useRouter();
 const movies = ref([]);
 const searchQuery = ref("");
-const isSemanticSearch = ref(false);
 const loadingSearch = ref(false);
 const pagination = ref({
   page: 1,
@@ -185,34 +170,28 @@ const pagination = ref({
   totalPages: 0,
 });
 
-// Load search results
+// Load token search results
 const loadSearchResults = async (page = 1) => {
   loadingSearch.value = true;
   try {
-    const query = route.query.q || route.query.description;
-    const searchType = route.query.type || "token";
-
+    const query = route.query.q;
     searchQuery.value = query;
-    isSemanticSearch.value = searchType === "semantic";
 
-    let endpoint = "/api/search";
-    let params = { q: query, page, limit: 20 };
-
-    let response;
-    if (isSemanticSearch.value) {
-      // Use POST for semantic search to handle long queries
-      response = await $fetch("/api/search/semantic", {
-        method: "POST",
-        body: {
-          description: query,
-          page,
-          limit: 20,
-        },
-      });
-    } else {
-      // Use GET for token search
-      response = await $fetch(endpoint, { params });
+    if (!query) {
+      movies.value = [];
+      pagination.value = {
+        page: 1,
+        limit: 20,
+        total: 0,
+        totalPages: 0,
+      };
+      return;
     }
+
+    const response = await $fetch("/api/search", {
+      params: { q: query, page, limit: 20 },
+    });
+
     movies.value = response.movies || [];
     pagination.value = response.pagination || {
       page: 1,
@@ -235,7 +214,7 @@ const loadSearchResults = async (page = 1) => {
       return;
     }
   } catch (error) {
-    console.error("Error loading search results:", error);
+    console.error("Error loading token search results:", error);
     // On error, redirect to page 1
     if (page > 1) {
       router.push({

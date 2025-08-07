@@ -1,40 +1,132 @@
-import { defineEventHandler, getQuery, readBody } from "h3";
+import { defineEventHandler, readBody } from "h3";
 import Database from "better-sqlite3";
+import { initPinecone, PINECONE_INDEXES } from "~/server/utils/pinecone";
+import Groq from "groq-sdk";
 
 const db = new Database("movies.db");
 
-export default defineEventHandler(async (event) => {
-  let searchDescription: string;
-  let page: number;
-  let limit: number;
+// Interface for extracted filter criteria
+interface SearchFilters {
+  genres?: string[]; // Array of genres
+  dateRange?: {
+    start: string; // ISO date string
+    end: string; // ISO date string
+  };
+  hasFilters: boolean;
+  userMessage?: string; // User-friendly message about what was detected
+  rephrasedQuery?: string; // Better version of the query for vector search
+}
 
-  if (event.method === "POST") {
-    // Handle POST request with body
-    const body = await readBody(event);
-    console.log("POST body received:", body);
-    searchDescription = body.description as string;
-    page = parseInt(String(body.page)) || 1;
-    limit = parseInt(String(body.limit)) || 20;
-  } else {
-    // Handle GET request with query params (for backward compatibility)
-    const query = getQuery(event);
-    console.log("GET query received:", query);
-    searchDescription = query.description as string;
-    page = parseInt(query.page as string) || 1;
-    limit = parseInt(query.limit as string) || 20;
+// Helper function to extract JSON from response text
+function extractJSONFromResponse(response: string): string {
+  // Look for JSON object in the response
+  const jsonMatch = response.match(/\{[\s\S]*\}/);
+  if (jsonMatch) {
+    return jsonMatch[0];
   }
+  return "{}";
+}
 
-  const offset = (page - 1) * limit;
+// Analyze search query to extract genres and date range for Pinecone metadata filtering
+async function analyzeSearchQuery(searchQuery: string): Promise<SearchFilters> {
+  const systemPrompt = `You are a movie search query analyzer. 
+Extract the intent from user queries and construct JSON object for vector database metadata filtering.
+
+Return ONLY a JSON object with this structure:
+{
+  "genres": ["genre1", "genre2"] or null,
+  "dateRange": {
+    "start": "YYYY-MM-DD or null",
+    "end": "YYYY-MM-DD or null"
+  },
+  "rephrasedQuery": "Better version of the query considering the filters will be applied. Or the same query if no filters were detected.",
+  "userMessage": "A natural, user-friendly message explaining what filter were detected from the query."
+  "hasFilters": "boolean indicating if any filters were found",
+}
+
+RULES:
+Available genres: action, comedy, drama, horror, sci-fi, romance, thriller, documentary, animation, fantasy, adventure, crime, mystery, western, musical, war, family, history, biography, sport, etc.
+Always return the genres in lowercase. If you are not sure about the genre, return null.
+
+For date ranges, extract the actual start and end dates in ISO format (YYYY-MM-DD):
+- Decades: "90s" → start: "1990-01-01", end: "1999-12-31"
+- Specific years: "2020" → start: "2020-01-01", end: "2020-12-31"
+- Year ranges: "1995 to 2000" → start: "1995-01-01", end: "2000-12-31"
+- Before/after: "before 2000" → start: "1900-01-01", end: "1999-12-31"
+- Recent: "recent movies" → start: "2020-01-01", end: "2024-12-31"
+
+The rephrased query must not loose any context of the original query has.
+However, the rephrasedQuery should not have information that was converted to filters.
+If the user's query contains solely information that was converted to filters, 
+the rephrased query should be a text that matches every very vector in the vector store.
+
+
+EXAMPLES:
+Query: "car chasing movie from the 90s" → {"genres": ["action"], "dateRange": {"start": "1990-01-01", "end": "1999-12-31"}, "rephrasedQuery": "car chasing ", "userMessage": "Based on your request, we filtered movies by \`action\` genres released in \`1990 - 1999\` time period.", "hasFilters": true}
+Query: "comedy films from 2020" → {"genres": ["comedy"], "dateRange": {"start": "2020-01-01", "end": "2020-12-31"}, "rephrasedQuery": "any movie", "userMessage": "Based on your request, we filtered movies by comedy \`genres\` and released in \`2020\`.", "hasFilters": true}
+Query: "robots exploring space and fighting aliens" → {"genres": ["action", "adventure", "sci-fi"], "dateRange": null, "rephrasedQuery": "robots exploring space and fighting aliens", "userMessage": "Based on your request, we filtered movies by \`action\`, \`adventure\`, and \`sci-fi\` genres.", "hasFilters": true}
+`;
+  const groq = await initGroq();
+  try {
+    const completion = await groq.chat.completions.create({
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: searchQuery },
+      ],
+      model: GROQ_MODELS.GEMMA2_9B,
+      temperature: 0.1, // Low temperature for consistent parsing
+      max_tokens: 300,
+    });
+
+    const response = completion.choices[0]?.message?.content || "{}";
+    console.log("Raw Groq response:", response);
+
+    try {
+      // Extract JSON from the response (in case it includes explanatory text)
+      const jsonString = extractJSONFromResponse(response);
+      const filters = JSON.parse(jsonString) as SearchFilters;
+
+      console.log("Parsed filters:", filters);
+
+      return {
+        genres: filters.genres || undefined,
+        dateRange: filters.dateRange || undefined,
+        hasFilters: filters.hasFilters || false,
+        userMessage:
+          filters.userMessage || "We found movies matching your description.",
+        rephrasedQuery: filters.rephrasedQuery || searchQuery,
+      };
+    } catch (parseError) {
+      console.error("Failed to parse Groq response:", response);
+      console.error("Parse error:", parseError);
+      return {
+        hasFilters: false,
+        userMessage: "We found movies matching your description.",
+        rephrasedQuery: searchQuery,
+      };
+    }
+  } catch (error) {
+    console.error("Error analyzing search query:", error);
+    return {
+      hasFilters: false,
+      userMessage: "We found movies matching your description.",
+      rephrasedQuery: searchQuery,
+    };
+  }
+}
+
+export default defineEventHandler(async (event) => {
+  // Handle POST request with body
+  const body = await readBody(event);
+  console.log("POST body received:", body);
+
+  const searchDescription = body.description as string;
+  const limit = Math.min(parseInt(String(body.limit)) || 50, 50);
 
   if (!searchDescription) {
     return {
       movies: [],
-      pagination: {
-        page: 1,
-        limit: 20,
-        total: 0,
-        totalPages: 0,
-      },
+      total: 0,
     };
   }
 
@@ -44,22 +136,53 @@ export default defineEventHandler(async (event) => {
       searchDescription
     );
 
-    // PLACEHOLDER: Return empty results until students implement semantic search
+    // Analyze the search query using Groq to extract genres and date range
+    const filters = await analyzeSearchQuery(searchDescription);
+    console.log("Extracted filters for Pinecone metadata filtering:", filters);
 
     const pc = await initPinecone();
     const index = pc.index(PINECONE_INDEXES.MOVIES_DENSE);
 
-    const results = await index.searchRecords({
+    // Build metadata filter for Pinecone
+    const metadataFilter: any = {};
+
+    if (filters.genres && filters.genres.length > 0) {
+      // Handle multiple genres - use $in to check if any of the genres exist in the array
+      metadataFilter.genre = { $in: filters.genres };
+    }
+
+    if (filters.dateRange) {
+      // Convert ISO date strings to timestamps for Pinecone numeric filtering
+      const startTimestamp = new Date(filters.dateRange.start).getTime();
+      const endTimestamp = new Date(filters.dateRange.end).getTime();
+
+      metadataFilter.release_date = {
+        $gte: startTimestamp,
+        $lte: endTimestamp,
+      };
+    }
+
+    console.log("Pinecone metadata filter:", metadataFilter);
+
+    // Perform vector search with metadata filtering
+    const searchOptions: any = {
       query: {
         inputs: { text: searchDescription },
-        topK: 20,
+        topK: limit * 2, // Double the limit for vector search
       },
       rerank: {
         model: "bge-reranker-v2-m3",
-        topN: 10,
+        topN: limit, // Use exact limit for reranking
         rankFields: ["text"],
       },
-    });
+    };
+
+    // Add metadata filter if we have any filters
+    if (filters.hasFilters && Object.keys(metadataFilter).length > 0) {
+      searchOptions.query.filter = metadataFilter;
+    }
+
+    const results = await index.searchRecords(searchOptions);
 
     // Create a map of movie IDs to their similarity scores
     const movieScoreMap = new Map<string, number>();
@@ -70,7 +193,7 @@ export default defineEventHandler(async (event) => {
 
     let movies: any[] = [];
     if (movieScoreMap.size > 0) {
-      // Create placeholders for the IN clause
+      // Get movie IDs from vector search results
       const movieIds = Array.from(movieScoreMap.keys());
       const placeholders = movieIds.map(() => "?").join(",");
       const query = `SELECT * FROM movies WHERE id IN (${placeholders})`;
@@ -92,18 +215,15 @@ export default defineEventHandler(async (event) => {
       movies.sort(
         (a, b) => (b.similarityScore || 0) - (a.similarityScore || 0)
       );
-    }
 
-    const total = results.result.hits.length;
+      // Limit to the requested number of results
+      movies = movies.slice(0, limit);
+    }
 
     return {
       movies,
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-      },
+      total: movies.length,
+      filters: filters.hasFilters ? filters : undefined, // Include filters in response if any were found
     };
   } catch (error) {
     console.error("Error in semantic search:", error);
