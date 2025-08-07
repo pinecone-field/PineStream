@@ -11,6 +11,13 @@ const db = new Database("movies.db");
   message: "",
 };
 
+// Helper function to convert date string to timestamp
+function dateToTimestamp(dateString: string): number | undefined {
+  if (!dateString) return undefined;
+  const date = new Date(dateString);
+  return isNaN(date.getTime()) ? undefined : date.getTime();
+}
+
 export default defineEventHandler(async (event) => {
   if (event.method !== "POST") {
     throw createError({
@@ -71,9 +78,12 @@ export default defineEventHandler(async (event) => {
           const genreArray = movie.genre
             ? movie.genre
                 .split(",")
-                .map((g: string) => g.trim())
+                .map((g: string) => g.trim().toLowerCase())
                 .filter((g: string) => g.length > 0)
             : [];
+
+          // Convert release_date string to numeric timestamp
+          const releaseTimestamp = dateToTimestamp(movie.release_date);
 
           return {
             id: movie.id.toString(),
@@ -82,6 +92,7 @@ ${movie.overview || ""}
 ${movie.genre ? `**Genre:** ${movie.genre}` : ""}`,
             title: movie.title,
             genre: genreArray,
+            ...(releaseTimestamp && { release_date: releaseTimestamp }),
           };
         });
 

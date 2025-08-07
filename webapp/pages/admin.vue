@@ -24,7 +24,17 @@
         </NuxtLink>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+      <!-- Skeleton loading for generate buttons -->
+      <div
+        v-if="loadingGenerateButtons"
+        class="grid grid-cols-1 md:grid-cols-2 gap-6"
+      >
+        <GenerateButtonSkeleton />
+        <GenerateButtonSkeleton />
+      </div>
+
+      <!-- Generate buttons content -->
+      <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-6">
         <!-- Generate Dense Embeddings -->
         <div class="bg-white rounded-lg shadow-md p-6">
           <h2 class="text-xl font-semibold mb-4 text-gray-700">
@@ -276,6 +286,7 @@ const dbStats = ref({
   sparseEmbeddings: 0,
 });
 const loadingStats = ref(false);
+const loadingGenerateButtons = ref(true);
 
 // Utility functions
 const formatTimeRemaining = (seconds) => {
@@ -520,6 +531,9 @@ onMounted(async () => {
     }
   } catch (error) {
     console.warn("Could not check initial progress:", error);
+  } finally {
+    // Hide skeleton loading after checking initial state
+    loadingGenerateButtons.value = false;
   }
 });
 
