@@ -5,12 +5,12 @@
     @click="closeModal"
   >
     <div
-      class="bg-gray-900 border border-gray-700 rounded-lg w-full max-w-2xl max-h-[80vh] overflow-hidden"
+      class="bg-gray-900 border border-gray-700 rounded-lg w-full max-w-2xl max-h-[90vh] flex flex-col"
       @click.stop
     >
       <!-- Header -->
       <div
-        class="flex items-center justify-between p-6 border-b border-gray-700"
+        class="flex items-center justify-between p-6 border-b border-gray-700 flex-shrink-0"
       >
         <div>
           <h2 class="text-xl font-bold text-white">Semantic Search</h2>
@@ -38,8 +38,8 @@
         </button>
       </div>
 
-      <!-- Content -->
-      <div class="p-6">
+      <!-- Scrollable Content -->
+      <div class="flex-1 overflow-y-auto p-6">
         <div class="mb-4">
           <label
             for="search-description"
@@ -56,10 +56,33 @@
           ></textarea>
         </div>
 
-        <!-- Examples -->
+        <!-- Expandable Examples -->
         <div class="mb-6">
-          <h3 class="text-sm font-medium text-gray-300 mb-2">Examples:</h3>
-          <div class="space-y-2">
+          <button
+            @click="showExamples = !showExamples"
+            class="flex items-center justify-between w-full text-sm font-medium text-gray-300 mb-2 hover:text-white transition-colors"
+          >
+            <span>Examples</span>
+            <svg
+              class="w-4 h-4 transition-transform"
+              :class="{ 'rotate-180': showExamples }"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                stroke-width="2"
+                d="M19 9l-7 7-7-7"
+              ></path>
+            </svg>
+          </button>
+
+          <div
+            v-show="showExamples"
+            class="space-y-2 transition-all duration-200"
+          >
             <button
               v-for="example in examples"
               :key="example"
@@ -70,23 +93,25 @@
             </button>
           </div>
         </div>
+      </div>
 
-        <!-- Search Button -->
-        <div class="flex justify-end space-x-3">
-          <button
-            @click="closeModal"
-            class="px-4 py-2 text-gray-400 hover:text-white transition-colors"
-          >
-            Cancel
-          </button>
-          <button
-            @click="handleSearch"
-            :disabled="!searchDescription.trim()"
-            class="px-6 py-2 bg-red-600 text-white rounded font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            Search
-          </button>
-        </div>
+      <!-- Fixed Footer -->
+      <div
+        class="flex justify-end space-x-3 p-6 border-t border-gray-700 flex-shrink-0"
+      >
+        <button
+          @click="closeModal"
+          class="px-4 py-2 text-gray-400 hover:text-white transition-colors"
+        >
+          Cancel
+        </button>
+        <button
+          @click="handleSearch"
+          :disabled="!searchDescription.trim()"
+          class="px-6 py-2 bg-red-600 text-white rounded font-medium hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+        >
+          Search
+        </button>
       </div>
     </div>
   </div>
@@ -104,6 +129,7 @@ const emit = defineEmits(["close", "search"]);
 
 const searchDescription = ref("");
 const previousQuery = ref("");
+const showExamples = ref(false);
 
 const examples = [
   "Movies about space exploration with a romantic subplot",
