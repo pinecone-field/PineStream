@@ -1,18 +1,31 @@
 import Database from "better-sqlite3";
-import { defineEventHandler } from "h3";
 
 const db = new Database("movies.db");
 
 async function getDenseEmbeddingsCount(): Promise<number> {
-  // PLACEHOLDER: Return 0 until students implement Pinecone integration
-  return 0;
-  // END PLACEHOLDER
+  try {
+    const pc = await initPinecone();
+    const index = pc.index(PINECONE_INDEXES.MOVIES_DENSE);
+    const stats = await index.describeIndexStats();
+    const count = stats.totalRecordCount || 0;
+    return count;
+  } catch (error) {
+    console.error("Error getting dense embeddings count:", error);
+    return 0;
+  }
 }
 
 async function getSparseEmbeddingsCount(): Promise<number> {
-  // PLACEHOLDER: Return 0 until students implement Pinecone integration
-  return 0;
-  // END PLACEHOLDER
+  try {
+    const pc = await initPinecone();
+    const index = pc.index(PINECONE_INDEXES.MOVIES_SPARSE);
+    const stats = await index.describeIndexStats();
+    const count = stats.totalRecordCount || 0;
+    return count;
+  } catch (error) {
+    console.error("Error getting sparse embeddings count:", error);
+    return 0;
+  }
 }
 
 export default defineEventHandler(async (event) => {

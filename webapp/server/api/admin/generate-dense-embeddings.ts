@@ -1,13 +1,29 @@
-import { defineEventHandler } from "h3";
 import Database from "better-sqlite3";
 
 const db = new Database("movies.db");
+
+// Global progress tracking
+(global as any).denseProgress = {
+  isRunning: false,
+  processed: 0,
+  total: 0,
+  startTime: 0,
+  message: "",
+};
 
 export default defineEventHandler(async (event) => {
   if (event.method !== "POST") {
     throw createError({
       statusCode: 405,
       statusMessage: "Method not allowed",
+    });
+  }
+
+  // Check if already running
+  if ((global as any).denseProgress.isRunning) {
+    throw createError({
+      statusCode: 409,
+      statusMessage: "Dense embedding generation is already running",
     });
   }
 
@@ -24,30 +40,101 @@ export default defineEventHandler(async (event) => {
 
     console.log(`Processing ${movies.length} movies for dense embeddings...`);
 
+    const batchSize = 50;
+    const batches = [];
+    for (let i = 0; i < movies.length; i += batchSize) {
+      batches.push(movies.slice(i, i + batchSize));
+    }
+
+    // Initialize progress
+    (global as any).denseProgress = {
+      isRunning: true,
+      processed: 0,
+      total: movies.length,
+      startTime,
+      message: "Processing...",
+    };
+
     let processedCount = 0;
-    let successCount = 0;
-    let errorCount = 0;
 
-    // PLACEHOLDER: Simulate processing for 2 seconds
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-    // END PLACEHOLDER
+    const pc = await initPinecone();
+    const index = pc.index(PINECONE_INDEXES.MOVIES_DENSE);
 
-    const processingTime = ((Date.now() - startTime) / 1000).toFixed(1);
+    // Process batches with progress updates
+    for (let i = 0; i < batches.length; i++) {
+      const batch = batches[i];
+      try {
+        // Convert movies to records for upsert
+        const records = batch.map((movie) => {
+          // Convert genre string to array of strings
+          const genreArray = movie.genre
+            ? movie.genre
+                .split(",")
+                .map((g: string) => g.trim())
+                .filter((g: string) => g.length > 0)
+            : [];
 
-    return {
-      message: `Dense embeddings generated successfully! Processed ${successCount} movies.`,
+          // Convert release_date string to ISO date string
+          const releaseDate = movie.release_date
+            ? new Date(movie.release_date).toISOString()
+            : undefined;
+
+          return {
+            id: movie.id.toString(),
+            text: `# ${movie.title}
+${movie.overview || ""}
+## Movie Details
+${movie.release_date ? `**Release date:** ${movie.release_date}` : ""}
+${movie.genre ? `**Genre:** ${movie.genre}` : ""}
+${movie.original_language ? `**Language:** ${movie.original_language}` : ""}`,
+            title: movie.title,
+            genre: genreArray,
+            ...(releaseDate && { release_date: releaseDate }),
+          };
+        });
+
+        await index.upsertRecords(records);
+
+        processedCount += batch.length;
+
+        // Update global progress
+        (global as any).denseProgress.processed = processedCount;
+
+        console.log(
+          `Processed batch ${i + 1}/${batches.length}: ${processedCount}/${
+            movies.length
+          } movies`
+        );
+      } catch (error) {
+        console.error(`Error processing batch ${i + 1}:`, error);
+        // Continue processing other batches even if one fails
+      }
+    }
+
+    // Mark as completed
+    const result = {
+      message: `Dense embeddings generated successfully! Processed ${processedCount} movies.`,
       status: "completed",
       timestamp: new Date().toISOString(),
-      details: {
-        moviesProcessed: processedCount,
-        embeddingsGenerated: successCount,
-        errors: errorCount,
-        processingTime: `${processingTime}s`,
-        totalMovies: movies.length,
-      },
     };
+
+    (global as any).denseProgress = {
+      isRunning: false,
+      processed: processedCount,
+      total: movies.length,
+      startTime,
+      message: result.message,
+    };
+
+    return result;
   } catch (error) {
     console.error("Error generating dense embeddings:", error);
+
+    // Mark as failed
+    (global as any).denseProgress.isRunning = false;
+    (global as any).denseProgress.message =
+      "Failed to generate dense embeddings";
+
     throw createError({
       statusCode: 500,
       statusMessage: "Internal Server Error",
