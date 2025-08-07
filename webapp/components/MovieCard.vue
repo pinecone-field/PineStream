@@ -94,6 +94,14 @@
       <div v-if="movie.genre" class="text-xs text-gray-500 truncate">
         {{ movie.genre }}
       </div>
+      <!-- Similarity Score for Semantic Search -->
+      <div
+        v-if="movie.similarityScore !== undefined"
+        class="text-xs text-purple-400 mt-1"
+      >
+        <span class="font-medium">Similarity:</span>
+        {{ (movie.similarityScore * 100).toFixed(1) }}%
+      </div>
     </div>
   </div>
 </template>

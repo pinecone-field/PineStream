@@ -6,24 +6,26 @@
     <!-- Search Results -->
     <section class="container mx-auto px-4 py-8 pt-24">
       <div class="mb-6">
-        <h1 class="text-3xl font-bold mb-2">Search Results</h1>
+        <h1 class="text-3xl font-bold mb-2">
+          <span>
+            {{ isSemanticSearch ? "✨ Semantic " : "🔍 Token " }}
+          </span>
+          Search Results
+        </h1>
+        <!-- Search Type Indicator -->
+        <div class="mb-6">
+          <!-- Similarity Score Info for Semantic Search -->
+          <div
+            v-if="isSemanticSearch && movies.length > 0"
+            class="mt-2 text-sm text-purple-300"
+          >
+            <span class="font-medium">💡</span> Results are ranked by similarity
+            to your query. Higher percentages indicate better matches.
+          </div>
+        </div>
         <p class="text-gray-400">
-          {{ pagination.total }} movies found for "{{ searchQuery }}"
+          The top {{ pagination.total }} movies we found for "{{ searchQuery }}"
         </p>
-      </div>
-
-      <!-- Search Type Indicator -->
-      <div class="mb-6">
-        <span
-          class="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium"
-          :class="
-            isExtendedSearch
-              ? 'bg-purple-900 text-purple-200'
-              : 'bg-blue-900 text-blue-200'
-          "
-        >
-          {{ isSemanticSearch ? "✨ Semantic Search" : "🔍 Token Search" }}
-        </span>
       </div>
 
       <!-- Results Grid -->
@@ -101,12 +103,21 @@ const loadSearchResults = async (page = 1) => {
     let endpoint = "/api/search";
     let params = { q: query, page, limit: 20 };
 
+    let response;
     if (isSemanticSearch.value) {
-      endpoint = "/api/search/semantic";
-      params = { description: query, page, limit: 20 };
+      // Use POST for semantic search to handle long queries
+      response = await $fetch("/api/search/semantic", {
+        method: "POST",
+        body: {
+          description: query,
+          page,
+          limit: 20,
+        },
+      });
+    } else {
+      // Use GET for token search
+      response = await $fetch(endpoint, { params });
     }
-
-    const response = await $fetch(endpoint, { params });
     movies.value = response.movies || [];
     pagination.value = response.pagination || {
       page: 1,
