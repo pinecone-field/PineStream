@@ -28,9 +28,17 @@
         </p>
       </div>
 
+      <!-- Skeleton loading for search results -->
+      <div
+        v-if="loadingSearch"
+        class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4"
+      >
+        <MovieCardSkeleton v-for="i in 12" :key="i" />
+      </div>
+
       <!-- Results Grid -->
       <div
-        v-if="movies.length > 0"
+        v-else-if="movies.length > 0"
         class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4"
       >
         <MovieCard
@@ -54,7 +62,7 @@
 
       <!-- Pagination -->
       <div
-        v-if="pagination.totalPages > 1"
+        v-if="!loadingSearch && pagination.totalPages > 1"
         class="flex justify-center mt-8 space-x-2"
       >
         <button
@@ -84,6 +92,7 @@ const route = useRoute();
 const movies = ref([]);
 const searchQuery = ref("");
 const isSemanticSearch = ref(false);
+const loadingSearch = ref(false);
 const pagination = ref({
   page: 1,
   limit: 20,
@@ -93,6 +102,7 @@ const pagination = ref({
 
 // Load search results
 const loadSearchResults = async (page = 1) => {
+  loadingSearch.value = true;
   try {
     const query = route.query.q || route.query.description;
     const searchType = route.query.type || "token";
@@ -127,6 +137,8 @@ const loadSearchResults = async (page = 1) => {
     };
   } catch (error) {
     console.error("Error loading search results:", error);
+  } finally {
+    loadingSearch.value = false;
   }
 };
 

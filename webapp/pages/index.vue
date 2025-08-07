@@ -45,8 +45,18 @@
           Based on {{ watchedCount }} watched movies
         </div>
       </div>
+
+      <!-- Skeleton loading for recommendations -->
       <div
-        v-if="recommendations.length > 0"
+        v-if="loadingRecommendations"
+        class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4"
+      >
+        <MovieCardSkeleton v-for="i in 6" :key="i" />
+      </div>
+
+      <!-- Recommendations content -->
+      <div
+        v-else-if="recommendations.length > 0"
         class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4"
       >
         <MovieCard
@@ -65,7 +75,17 @@
     <!-- Movies Grid -->
     <section class="container mx-auto px-4 py-8 pb-4">
       <h3 class="text-2xl font-bold mb-6">All Movies</h3>
-      <div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
+
+      <!-- Skeleton loading for movies -->
+      <div
+        v-if="loadingMovies"
+        class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4"
+      >
+        <MovieCardSkeleton v-for="i in 12" :key="i" />
+      </div>
+
+      <!-- Movies content -->
+      <div v-else class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4">
         <MovieCard
           v-for="movie in movies"
           :key="movie.id"
@@ -116,9 +136,12 @@ const pagination = ref({
   totalPages: 0,
 });
 const showVideoPlayer = ref(false);
+const loadingMovies = ref(false);
+const loadingRecommendations = ref(false);
 
 // Load movies
 const loadMovies = async (page = 1) => {
+  loadingMovies.value = true;
   try {
     const response = await $fetch(`/api/movies?page=${page}&limit=20`);
     movies.value = response.movies;
@@ -126,21 +149,26 @@ const loadMovies = async (page = 1) => {
 
     // Set featured movie as the first one
     if (movies.value.length > 0) {
-      featuredMovie.value = movies.value[0];
+      featuredMovie.value = movies.value[Math.floor(Math.random() * 10)];
     }
   } catch (error) {
     console.error("Error loading movies:", error);
+  } finally {
+    loadingMovies.value = false;
   }
 };
 
 // Load recommendations
 const loadRecommendations = async () => {
+  loadingRecommendations.value = true;
   try {
     const response = await $fetch("/api/user/recommendations");
     recommendations.value = response.recommendations;
     watchedCount.value = response.watchedCount;
   } catch (error) {
     console.error("Error loading recommendations:", error);
+  } finally {
+    loadingRecommendations.value = false;
   }
 };
 

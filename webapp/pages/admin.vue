@@ -189,7 +189,12 @@
         <h2 class="text-xl font-semibold mb-4 text-gray-700">
           Database Statistics
         </h2>
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+
+        <!-- Skeleton loading for stats -->
+        <StatsSkeleton v-if="loadingStats" />
+
+        <!-- Stats content -->
+        <div v-else class="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div class="text-center">
             <div class="text-2xl font-bold text-blue-600">
               {{ (dbStats && dbStats.totalMovies) || 0 }}
@@ -270,6 +275,7 @@ const dbStats = ref({
   denseEmbeddings: 0,
   sparseEmbeddings: 0,
 });
+const loadingStats = ref(false);
 
 // Utility functions
 const formatTimeRemaining = (seconds) => {
@@ -474,6 +480,7 @@ const generateSparseEmbeddings = async () => {
 
 // Load initial database stats
 const loadDatabaseStats = async () => {
+  loadingStats.value = true;
   try {
     const response = await $fetch("/api/admin/stats");
     dbStats.value = response;
@@ -486,6 +493,8 @@ const loadDatabaseStats = async () => {
       denseEmbeddings: 0,
       sparseEmbeddings: 0,
     };
+  } finally {
+    loadingStats.value = false;
   }
 };
 

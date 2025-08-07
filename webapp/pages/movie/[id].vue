@@ -99,13 +99,7 @@
           v-if="similarMoviesLoading"
           class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4"
         >
-          <div v-for="i in 6" :key="i" class="animate-pulse">
-            <div class="w-full h-64 bg-gray-800 rounded"></div>
-            <div class="mt-2">
-              <div class="h-4 bg-gray-800 rounded mb-1"></div>
-              <div class="h-3 bg-gray-800 rounded"></div>
-            </div>
-          </div>
+          <MovieCardSkeleton v-for="i in 6" :key="i" />
         </div>
 
         <!-- Similar Movies Grid -->
