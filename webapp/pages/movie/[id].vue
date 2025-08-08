@@ -90,6 +90,27 @@
         </div>
       </section>
 
+      <!-- Plot Section -->
+      <section v-if="movie.plot" class="container mx-auto px-4 py-8">
+        <h2 class="text-2xl font-bold mb-6">Plot</h2>
+        <div class="bg-gray-900/50 rounded-lg p-6">
+          <p
+            :class="[
+              'text-gray-300 leading-relaxed text-lg transition-all duration-300',
+              isPlotExpanded ? '' : 'line-clamp-3',
+            ]"
+          >
+            {{ movie.plot }}
+          </p>
+          <button
+            @click="togglePlot"
+            class="mt-4 text-blue-400 hover:text-blue-300 font-medium transition-colors"
+          >
+            {{ isPlotExpanded ? "Show Less" : "Show More" }}
+          </button>
+        </div>
+      </section>
+
       <!-- Similar Movies Section -->
       <section class="container mx-auto px-4 py-8 pb-4">
         <h2 class="text-2xl font-bold mb-6">Similar Movies</h2>
@@ -185,6 +206,7 @@ const similarMovies = ref(null);
 const similarMoviesLoading = ref(false);
 const isWatched = ref(false);
 const showVideoPlayer = ref(false);
+const isPlotExpanded = ref(false);
 
 // Load movie data
 const loadMovie = async () => {
@@ -263,6 +285,11 @@ const playMovie = () => {
 // Close video player
 const closeVideoPlayer = () => {
   showVideoPlayer.value = false;
+};
+
+// Toggle plot expansion
+const togglePlot = () => {
+  isPlotExpanded.value = !isPlotExpanded.value;
 };
 
 // Load movie and similar movies when component mounts
