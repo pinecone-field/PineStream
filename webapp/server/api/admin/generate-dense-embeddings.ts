@@ -1,6 +1,5 @@
-import Database from "better-sqlite3";
-
-const db = new Database("movies.db");
+import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
+const db = getDatabase();
 
 // Global progress tracking
 (global as any).denseProgress = {

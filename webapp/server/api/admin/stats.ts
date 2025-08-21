@@ -1,6 +1,4 @@
-import Database from "better-sqlite3";
-
-const db = new Database("movies.db");
+const db = getDatabase();
 
 async function getDenseEmbeddingsCount(): Promise<number> {
   try {

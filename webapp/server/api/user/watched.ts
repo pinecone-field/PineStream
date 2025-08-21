@@ -1,7 +1,4 @@
-import Database from "better-sqlite3";
-import { defineEventHandler } from "h3";
-
-const db = new Database("movies.db");
+const db = getDatabase();
 
 export default defineEventHandler(async (event) => {
   const method = event.method;

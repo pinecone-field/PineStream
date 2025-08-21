@@ -1,9 +1,4 @@
-import { defineEventHandler, readBody } from "h3";
-import Database from "better-sqlite3";
-import { initPinecone, PINECONE_INDEXES } from "~/server/utils/pinecone";
-import Groq from "groq-sdk";
-
-const db = new Database("movies.db");
+const db = getDatabase();
 
 // Interface for extracted filter criteria
 interface SearchFilters {
