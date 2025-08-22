@@ -215,6 +215,8 @@ const loadMovie = async () => {
     const movieId = route.params.id;
     const data = await $fetch(`/api/movies/${movieId}`);
     movie.value = data;
+    // Check watched status after movie is loaded
+    checkWatchedStatus();
   } catch (error) {
     console.error("Error loading movie:", error);
     movie.value = null;
@@ -238,16 +240,10 @@ const loadSimilarMovies = async () => {
   }
 };
 
-// Check if movie is watched
-const checkWatchedStatus = async () => {
-  try {
-    const response = await $fetch("/api/user/watched");
-    const watchedMovies = response.watchedMovies;
-    isWatched.value = watchedMovies.some(
-      (watched) => watched.id === parseInt(route.params.id)
-    );
-  } catch (error) {
-    console.error("Error checking watched status:", error);
+// Check if movie is watched - now using the isWatched property from movie data
+const checkWatchedStatus = () => {
+  if (movie.value) {
+    isWatched.value = movie.value.isWatched || false;
   }
 };
 
@@ -296,7 +292,6 @@ const togglePlot = () => {
 onMounted(() => {
   loadMovie();
   loadSimilarMovies();
-  checkWatchedStatus();
 });
 
 // Watch for route changes

@@ -21,6 +21,9 @@ export default defineEventHandler(async (event) => {
     `);
     const movies = moviesStmt.all(limit, offset) as any[];
 
+    // Add watched status to movies
+    const moviesWithWatchedStatus = addWatchedStatusToMovies(movies, db);
+
     const totalPages = Math.ceil(total / limit);
 
     console.log(
@@ -28,7 +31,7 @@ export default defineEventHandler(async (event) => {
     );
 
     return {
-      movies,
+      movies: moviesWithWatchedStatus,
       pagination: {
         page,
         limit,

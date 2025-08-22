@@ -288,6 +288,9 @@ export default defineEventHandler(async (event) => {
         };
       });
 
+      // Add watched status to movies
+      movies = addWatchedStatusToMovies(movies, db);
+
       // Limit to the requested number of results
       movies = movies
         .slice(0, limit)

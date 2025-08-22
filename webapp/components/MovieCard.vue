@@ -20,69 +20,53 @@
         class="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors rounded"
       ></div>
 
-      <!-- Watched indicator -->
-      <div
-        v-if="isWatched"
-        class="absolute top-2 left-2 bg-green-600 text-white p-1 rounded-full"
-        title="Watched"
+      <!-- Combined watched indicator and toggle button -->
+      <button
+        @click.stop="toggleWatched"
+        :class="
+          isWatched
+            ? 'bg-green-600 hover:bg-green-700'
+            : 'bg-gray-800 hover:bg-gray-700 opacity-0 group-hover:opacity-100'
+        "
+        class="absolute top-2 left-2 text-white p-2 rounded-full transition-all"
+        :title="isWatched ? 'Remove from watched' : 'Mark as watched'"
       >
-        <svg class="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
+        <!-- Checkmark icon - always visible when watched -->
+        <svg
+          v-if="isWatched"
+          class="w-4 h-4"
+          fill="currentColor"
+          viewBox="0 0 20 20"
+        >
           <path
             fill-rule="evenodd"
             d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
             clip-rule="evenodd"
           ></path>
         </svg>
-      </div>
 
-      <!-- Quick action buttons -->
-      <div
-        class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity"
-      >
-        <button
-          @click.stop="toggleWatched"
-          :class="
-            isWatched
-              ? 'bg-green-600 hover:bg-green-700'
-              : 'bg-gray-800 hover:bg-gray-700'
-          "
-          class="text-white p-2 rounded-full"
-          :title="isWatched ? 'Remove from watched' : 'Mark as watched'"
+        <!-- Eye icon - only visible on hover when not watched -->
+        <svg
+          v-else
+          class="w-4 h-4"
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
         >
-          <svg
-            v-if="isWatched"
-            class="w-4 h-4"
-            fill="currentColor"
-            viewBox="0 0 20 20"
-          >
-            <path
-              fill-rule="evenodd"
-              d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z"
-              clip-rule="evenodd"
-            ></path>
-          </svg>
-          <svg
-            v-else
-            class="w-4 h-4"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
-            ></path>
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
-            ></path>
-          </svg>
-        </button>
-      </div>
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+          ></path>
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+          ></path>
+        </svg>
+      </button>
     </div>
     <div class="mt-2">
       <h4 class="font-semibold text-sm truncate">{{ movie.title }}</h4>
@@ -118,24 +102,13 @@ const props = defineProps({
   },
 });
 
-const emit = defineEmits(["click", "watched-toggle"]);
+const emit = defineEmits(["click"]);
 
-const isWatched = ref(false);
-
-// Check if movie is watched
-const checkWatchedStatus = async () => {
-  if (!props.showWatchedStatus) return;
-
-  try {
-    const response = await $fetch("/api/user/watched");
-    const watchedMovies = response.watchedMovies;
-    isWatched.value = watchedMovies.some(
-      (watched) => watched.id === props.movie.id
-    );
-  } catch (error) {
-    console.error("Error checking watched status:", error);
-  }
-};
+// Use the isWatched property from movie data instead of making API calls
+const isWatched = computed(() => {
+  if (!props.showWatchedStatus) return false;
+  return props.movie.isWatched || false;
+});
 
 // Toggle watched status
 const toggleWatched = async (event) => {
@@ -155,11 +128,9 @@ const toggleWatched = async (event) => {
         body: { movieId: props.movie.id },
       });
     }
-    isWatched.value = !isWatched.value;
-    emit("watched-toggle", {
-      movieId: props.movie.id,
-      isWatched: isWatched.value,
-    });
+
+    // Update the movie object directly to reflect the change
+    props.movie.isWatched = !isWatched.value;
   } catch (error) {
     console.error("Error toggling watched status:", error);
   }
@@ -169,17 +140,4 @@ const toggleWatched = async (event) => {
 const handleClick = () => {
   emit("click", props.movie.id);
 };
-
-// Check watched status on mount
-onMounted(() => {
-  checkWatchedStatus();
-});
-
-// Watch for movie changes
-watch(
-  () => props.movie.id,
-  () => {
-    checkWatchedStatus();
-  }
-);
 </script>

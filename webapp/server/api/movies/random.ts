@@ -16,16 +16,20 @@ export default defineEventHandler(async (event) => {
     `);
     const randomMovies = randomMoviesStmt.all(limitedCount) as any[];
 
+    // Add watched status to movies
+    const moviesWithWatchedStatus = addWatchedStatusToMovies(randomMovies, db);
+
     return {
-      movies: randomMovies.map((movie) => ({
+      movies: moviesWithWatchedStatus.map((movie) => ({
         id: movie.id,
         title: movie.title,
         poster_url: movie.poster_url,
         release_date: movie.release_date,
         vote_average: movie.vote_average,
         genre: movie.genre,
+        isWatched: movie.isWatched,
       })),
-      count: randomMovies.length,
+      count: moviesWithWatchedStatus.length,
     };
   } catch (error) {
     console.error("Error fetching random movies:", error);

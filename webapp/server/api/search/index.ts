@@ -47,8 +47,11 @@ export default defineEventHandler(async (event) => {
       searchPattern
     ) as { total: number };
 
+    // Add watched status to movies
+    const moviesWithWatchedStatus = addWatchedStatusToMovies(movies, db);
+
     return {
-      movies,
+      movies: moviesWithWatchedStatus,
       pagination: {
         page,
         limit,

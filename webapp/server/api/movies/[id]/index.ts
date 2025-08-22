@@ -21,7 +21,10 @@ export default defineEventHandler(async (event) => {
       });
     }
 
-    return movie;
+    // Add watched status to movie
+    const movieWithWatchedStatus = addWatchedStatusToMovie(movie, db);
+
+    return movieWithWatchedStatus;
   } catch (error) {
     console.error("Error fetching movie:", error);
     throw createError({
