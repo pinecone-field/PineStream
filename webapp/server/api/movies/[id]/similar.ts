@@ -93,15 +93,6 @@ export default defineEventHandler(async (event) => {
       const score = hit._score || 0;
 
       if (movieId) {
-        // // Extract movie ID from the result ID (format: movieId_source)
-        // let movieIdFromResult;
-        // if (movieId.includes("_plot") || movieId.includes("_overview")) {
-        //   movieIdFromResult = movieId.split("_")[0];
-        // } else {
-        //   movieIdFromResult = movieId;
-        // }
-
-        // Keep the highest score if we have multiple results for the same movie
         const existingScore = movieScoreMap.get(movieId) || 0;
         if (score > existingScore) {
           movieScoreMap.set(movieId, score);
@@ -131,22 +122,13 @@ export default defineEventHandler(async (event) => {
     const query = `SELECT * FROM movies WHERE id IN (${placeholders})`;
     const similarMovies = db.prepare(query).all(...movieIds);
 
-    // STEP 7: Attach similarity scores and sort by score
-    const similarMoviesWithScores = similarMovies.map((movie: any) => {
-      const score = movieScoreMap.get(String(movie.id)) || 0;
-      return {
-        ...movie,
-        similarityScore: score,
-      };
-    });
-
     // Sort by similarity score (higher scores = more similar)
-    similarMoviesWithScores.sort(
+    similarMovies.sort(
       (a, b) => (b.similarityScore || 0) - (a.similarityScore || 0)
     );
 
     // Take top 10 results
-    const topResults = similarMoviesWithScores.slice(0, 10);
+    const topResults = similarMovies.slice(0, 10);
 
     console.log("Returning", topResults.length, "similar movies");
 

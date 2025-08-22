@@ -164,14 +164,6 @@
                   >⭐ {{ similarMovie.vote_average?.toFixed(1) || "N/A" }}</span
                 >
               </div>
-              <!-- Similarity Score for Similar Movies -->
-              <div
-                v-if="similarMovie.similarityScore !== undefined"
-                class="text-xs text-purple-400 mt-1"
-              >
-                <span class="font-medium">Similarity:</span>
-                {{ (similarMovie.similarityScore * 100).toFixed(1) }}%
-              </div>
             </div>
           </NuxtLink>
         </div>
