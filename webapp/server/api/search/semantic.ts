@@ -143,7 +143,9 @@ export default defineEventHandler(async (event) => {
 
     if (filters.genres && filters.genres.length > 0) {
       // Handle multiple genres - use $in to check if any of the genres exist in the array
-      metadataFilter.genre = { $in: filters.genres };
+      // Ensure genres are lowercase to match how they're stored in embeddings
+      const normalizedGenres = filters.genres.map((g) => g.toLowerCase());
+      metadataFilter.genre = { $in: normalizedGenres };
     }
 
     if (filters.dateRange) {
@@ -159,42 +161,122 @@ export default defineEventHandler(async (event) => {
 
     console.log("Pinecone metadata filter:", metadataFilter);
 
-    // Perform vector search with metadata filtering
-    const searchOptions: any = {
+    // STEP 3: Perform hybrid search using both dense and sparse embeddings
+    // This combines semantic understanding (dense) with keyword matching (sparse)
+
+    // Dense embeddings capture semantic meaning and context
+    const denseIndex = pc.index(PINECONE_INDEXES.MOVIES_DENSE);
+    const denseSearchOptions: any = {
       query: {
         inputs: { text: searchDescription },
-        topK: limit * 2, // Double the limit for vector search
-      },
-      rerank: {
-        model: "bge-reranker-v2-m3",
-        topN: limit, // Use exact limit for reranking
-        rankFields: ["text"],
+        topK: limit * 3, // Get more chunks since we'll deduplicate by movie
       },
     };
-
-    // Add metadata filter if we have any filters
     if (filters.hasFilters && Object.keys(metadataFilter).length > 0) {
-      searchOptions.query.filter = metadataFilter;
+      denseSearchOptions.filter = metadataFilter;
+    }
+    const denseResults = await denseIndex.searchRecords(denseSearchOptions);
+    console.log("Dense results:", denseResults.result.hits.length, "chunks");
+
+    // Sparse embeddings capture specific keywords and phrases
+    const sparseIndex = pc.index(PINECONE_INDEXES.MOVIES_SPARSE);
+    const sparseSearchOptions: any = {
+      query: {
+        inputs: { text: searchDescription },
+        topK: limit * 3, // Get more records since we'll deduplicate by movie
+      },
+    };
+    if (filters.hasFilters && Object.keys(metadataFilter).length > 0) {
+      sparseSearchOptions.filter = metadataFilter;
+    }
+    const sparseResults = await sparseIndex.searchRecords(sparseSearchOptions);
+    console.log("Sparse results:", sparseResults.result.hits.length, "records");
+
+    // STEP 4: Extract unique movie IDs from both search results
+    const uniqueMovieIds = new Set<number>();
+
+    // Extract movie IDs from dense results (chunks)
+    denseResults.result.hits.forEach((hit) => {
+      const movieId = (hit as any).fields?.movie_id;
+      if (movieId) {
+        uniqueMovieIds.add(movieId);
+      }
+    });
+
+    // Extract movie IDs from sparse results (full plots)
+    sparseResults.result.hits.forEach((hit) => {
+      const movieId = (hit as any).id; // Sparse now uses direct movie ID
+      if (movieId) {
+        uniqueMovieIds.add(parseInt(movieId));
+      }
+    });
+
+    console.log("Unique movies found:", uniqueMovieIds.size);
+
+    // STEP 5: Fetch movie plots from database for reranking
+    if (uniqueMovieIds.size === 0) {
+      console.log("No movies found, returning empty results");
+      return {
+        movies: [],
+        total: 0,
+        filters: filters.hasFilters ? filters : undefined,
+      };
     }
 
-    const results = await index.searchRecords(searchOptions);
+    const movieIdsArray = Array.from(uniqueMovieIds);
+    const placeholders = movieIdsArray.map(() => "?").join(",");
+    const query = `SELECT id, title, plot, overview FROM movies WHERE id IN (${placeholders})`;
+    const moviePlots = db.prepare(query).all(...movieIdsArray) as Array<{
+      id: number;
+      title: string;
+      plot: string | null;
+      overview: string | null;
+    }>;
 
-    // Create a map of movie IDs to their similarity scores
+    // STEP 6: Prepare movie plots for reranking
+    const allDescriptions = moviePlots.map((movie) => {
+      // Use plot if available, otherwise fallback to overview
+      const plotText = movie.plot || movie.overview || movie.title || "";
+      return {
+        id: String(movie.id), // Convert to string for reranker
+        text: plotText,
+      };
+    });
+
+    console.log("Movies prepared for reranking:", allDescriptions.length);
+
+    // STEP 7: Rerank movies using the sophisticated model
+    const rerankResults = await pc.inference.rerank(
+      "bge-reranker-v2-m3",
+      searchDescription,
+      allDescriptions,
+      { topN: limit, rankFields: ["text"], returnDocuments: true }
+    );
+    console.log(
+      "Rerank results:",
+      rerankResults.data.map((movie) => movie.document?.id)
+    );
+
+    // STEP 8: Extract similarity scores and fetch full movie data
     const movieScoreMap = new Map<string, number>();
-    results.result.hits.forEach((match) => {
-      const score = match._score || 0;
-      movieScoreMap.set(match._id, score);
+    rerankResults.data.forEach((doc) => {
+      const movieId = doc.document?.id;
+      if (movieId) {
+        const similarityScore = doc.score || 0;
+        movieScoreMap.set(String(movieId), similarityScore);
+      }
     });
 
     let movies: any[] = [];
     if (movieScoreMap.size > 0) {
-      // Get movie IDs from vector search results
+      // Get movie IDs from reranked results
       const movieIds = Array.from(movieScoreMap.keys());
+
       const placeholders = movieIds.map(() => "?").join(",");
       const query = `SELECT * FROM movies WHERE id IN (${placeholders})`;
       movies = db.prepare(query).all(...movieIds);
 
-      // Add similarity scores to each movie and sort by score
+      // Add similarity scores to each movie
       movies = movies.map((movie) => {
         const score =
           movieScoreMap.get(movie.id) ||
@@ -206,13 +288,10 @@ export default defineEventHandler(async (event) => {
         };
       });
 
-      // Sort movies by similarity score (highest first)
-      movies.sort(
-        (a, b) => (b.similarityScore || 0) - (a.similarityScore || 0)
-      );
-
       // Limit to the requested number of results
-      movies = movies.slice(0, limit);
+      movies = movies
+        .slice(0, limit)
+        .sort((a, b) => b.similarityScore - a.similarityScore);
     }
 
     return {

@@ -7,21 +7,28 @@
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare"
+    "postinstall": "nuxt prepare",
+    "test": "vitest",
+    "test:ui": "vitest --ui",
+    "test:run": "vitest run"
   },
   "dependencies": {
-    "nuxt": "3.15.4",
-    "vue": "^3.5.18",
-    "vue-router": "^4.5.1",
+    "@langchain/textsplitters": "^0.1.0",
+    "@pinecone-database/pinecone": "^6.1.2",
     "@types/better-sqlite3": "7.6.13",
     "better-sqlite3": "12.2.0",
-    "@pinecone-database/pinecone": "^6.1.2",
-    "groq-sdk": "^0.30.0"
+    "groq-sdk": "^0.30.0",
+    "nuxt": "3.15.4",
+    "vue": "^3.5.18",
+    "vue-router": "^4.5.1"
   },
   "devDependencies": {
-    "@nuxtjs/tailwindcss": "6.14.0"
+    "@nuxt/test-utils": "^3.19.2",
+    "@nuxtjs/tailwindcss": "6.14.0",
+    "@vitest/ui": "^3.2.4",
+    "vitest": "^3.2.4"
   },
-  "packageManager": "pnpm@10.5.2+sha512.da9dc28cd3ff40d0592188235ab25d3202add8a207afbedc682220e4a0029ffbff4562102b9e6e46b4e3f9e8bd53e6d05de48544b0c57d4b0179e22c76d1199b",
+  "packageManager": "pnpm@10.14.0",
   "pnpm": {
     "onlyBuiltDependencies": [
       "better-sqlite3"

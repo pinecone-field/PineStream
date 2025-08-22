@@ -1,4 +1,3 @@
-import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 const db = getDatabase();
 
 // Global progress tracking
@@ -38,19 +37,22 @@ export default defineEventHandler(async (event) => {
 
     // Get all movies from database
     const moviesStmt = db.prepare(`
-      SELECT id, title, overview, genre, release_date, vote_average 
+      SELECT id, title, overview, plot, genre, release_date, vote_average 
       FROM movies 
       ORDER BY id
     `);
     const movies = moviesStmt.all() as any[];
 
-    console.log(`Processing ${movies.length} movies for dense embeddings...`);
+    // Process movies and create chunks with chunk-based batching
+    const maxChunksPerBatch = parseInt(process.env.DENSE_BATCH_SIZE || "50");
+    const maxConcurrentBatches = parseInt(
+      process.env.MAX_CONCURRENT_BATCHES || "1"
+    );
 
-    const batchSize = 50;
-    const batches = [];
-    for (let i = 0; i < movies.length; i += batchSize) {
-      batches.push(movies.slice(i, i + batchSize));
-    }
+    console.log(`Processing ${movies.length} movies for dense embeddings...`);
+    console.log(
+      `Batch configuration: ${maxChunksPerBatch} chunks per batch, ${maxConcurrentBatches} concurrent batches`
+    );
 
     // Initialize progress
     (global as any).denseProgress = {
@@ -62,62 +64,154 @@ export default defineEventHandler(async (event) => {
     };
 
     let processedCount = 0;
+    let totalChunks = 0;
 
     const pc = await initPinecone();
     const index = pc.index(PINECONE_INDEXES.MOVIES_DENSE);
 
-    // Process batches with progress updates
-    for (let i = 0; i < batches.length; i++) {
-      const batch = batches[i];
+    let currentBatch: any[] = [];
+    let batchCount = 0;
+    let pendingBatches: Promise<void>[] = [];
+
+    // Rate limiting helper
+    const delay = (ms: number) =>
+      new Promise((resolve) => setTimeout(resolve, ms));
+
+    for (const movie of movies) {
       try {
-        // Convert movies to records for upsert
-        const records = batch.map((movie) => {
-          // Convert genre string to array of strings
-          const genreArray = movie.genre
-            ? movie.genre
-                .split(",")
-                .map((g: string) => g.trim().toLowerCase())
-                .filter((g: string) => g.length > 0)
-            : [];
+        // Use plot if available, otherwise fallback to overview
+        const plotText = movie.plot || movie.overview || "";
 
-          // Convert release_date string to numeric timestamp
-          const releaseTimestamp = dateToTimestamp(movie.release_date);
+        if (!plotText.trim()) {
+          // Skip movies with no plot or overview
+          processedCount++;
+          continue;
+        }
 
-          return {
-            id: movie.id.toString(),
-            text: `# ${movie.title}
-${movie.overview || ""}
-## Movie Details
-${movie.release_date ? `**Release date:** ${movie.release_date}` : ""}
-${movie.genre ? `**Genre:** ${movie.genre}` : ""}
-${movie.original_language ? `**Language:** ${movie.original_language}` : ""}`,
+        // Convert genre string to array of strings
+        const genreArray = movie.genre
+          ? movie.genre
+              .split(",")
+              .map((g: string) => g.trim().toLowerCase())
+              .filter((g: string) => g.length > 0)
+          : [];
+
+        // Convert release_date string to numeric timestamp
+        const releaseTimestamp = dateToTimestamp(movie.release_date);
+
+        // Split the plot text into chunks using the utility
+        const chunks = await splitText(plotText);
+
+        // Create a record for each chunk
+        for (let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex++) {
+          const chunk = chunks[chunkIndex];
+          const chunkId = `${movie.id}_chunk_${chunkIndex}`;
+
+          currentBatch.push({
+            id: chunkId,
+            text: chunk,
             title: movie.title,
             genre: genreArray,
+            movie_id: movie.id,
+            chunk_index: chunkIndex,
+            total_chunks: chunks.length,
             ...(releaseTimestamp && { release_date: releaseTimestamp }),
-          };
-        });
+          });
 
-        await index.upsertRecords(records);
+          // If batch is full, start processing it in parallel
+          if (currentBatch.length >= maxChunksPerBatch) {
+            const batchToProcess = [...currentBatch];
+            const currentBatchCount = batchCount + 1;
 
-        processedCount += batch.length;
+            // Create a promise for this batch
+            const batchPromise = (async () => {
+              try {
+                await index.upsertRecords(batchToProcess);
+                totalChunks += batchToProcess.length;
+                console.log(
+                  `Completed batch ${currentBatchCount}: ${batchToProcess.length} chunks (${processedCount}/${movies.length} movies processed)`
+                );
+                // Add delay after successful batch to respect rate limits
+                await delay(1000); // 1 second delay between batches
+              } catch (error) {
+                console.error(
+                  `Error processing batch ${currentBatchCount}:`,
+                  error
+                );
+                // If we hit rate limits, wait longer
+                if (
+                  error &&
+                  typeof error === "object" &&
+                  "status" in error &&
+                  error.status === 429
+                ) {
+                  console.log(
+                    `Rate limit hit, waiting 5 seconds before continuing...`
+                  );
+                  await delay(5000);
+                }
+              }
+            })();
+
+            pendingBatches.push(batchPromise);
+            batchCount++;
+            currentBatch = [];
+
+            // If we have too many pending batches, wait for one to complete
+            if (pendingBatches.length >= maxConcurrentBatches) {
+              await Promise.race(pendingBatches);
+              // Clean up by removing the first promise (simplified approach)
+              pendingBatches.shift();
+            }
+          }
+        }
+
+        processedCount++;
 
         // Update global progress
         (global as any).denseProgress.processed = processedCount;
-
-        console.log(
-          `Processed batch ${i + 1}/${batches.length}: ${processedCount}/${
-            movies.length
-          } movies`
-        );
       } catch (error) {
-        console.error(`Error processing batch ${i + 1}:`, error);
-        // Continue processing other batches even if one fails
+        console.error(`Error processing movie ${movie.id}:`, error);
+        processedCount++;
+        // Continue processing other movies even if one fails
       }
+    }
+
+    // Upsert any remaining chunks in the final batch
+    if (currentBatch.length > 0) {
+      const batchToProcess = [...currentBatch];
+      const currentBatchCount = batchCount + 1;
+
+      const batchPromise = (async () => {
+        try {
+          await index.upsertRecords(batchToProcess);
+          totalChunks += batchToProcess.length;
+          console.log(
+            `Completed final batch ${currentBatchCount}: ${batchToProcess.length} chunks (${processedCount}/${movies.length} movies processed)`
+          );
+        } catch (error) {
+          console.error(
+            `Error processing final batch ${currentBatchCount}:`,
+            error
+          );
+        }
+      })();
+
+      pendingBatches.push(batchPromise);
+      batchCount++;
+    }
+
+    // Wait for all remaining batches to complete
+    if (pendingBatches.length > 0) {
+      console.log(
+        `Waiting for ${pendingBatches.length} remaining batches to complete...`
+      );
+      await Promise.all(pendingBatches);
     }
 
     // Mark as completed
     const result = {
-      message: `Dense embeddings generated successfully! Processed ${processedCount} movies.`,
+      message: `Dense embeddings generated successfully! Processed ${processedCount} movies with ${totalChunks} total chunks. (Config: ${maxChunksPerBatch} chunks/batch, ${maxConcurrentBatches} concurrent)`,
       status: "completed",
       timestamp: new Date().toISOString(),
     };

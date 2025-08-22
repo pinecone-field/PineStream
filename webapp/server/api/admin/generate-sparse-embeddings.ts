@@ -1,4 +1,3 @@
-import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
 const db = getDatabase();
 
 // Global progress tracking for sparse embeddings
@@ -38,19 +37,22 @@ export default defineEventHandler(async (event) => {
 
     // Get all movies from database
     const moviesStmt = db.prepare(`
-      SELECT id, title, overview, genre, release_date, vote_average 
+      SELECT id, title, overview, plot, genre, release_date, vote_average 
       FROM movies 
       ORDER BY id
     `);
     const movies = moviesStmt.all() as any[];
 
-    console.log(`Processing ${movies.length} movies for sparse embeddings...`);
+    // Process movies with batching for the full plots
+    const maxRecordsPerBatch = parseInt(process.env.SPARSE_BATCH_SIZE || "50");
+    const maxConcurrentBatches = parseInt(
+      process.env.MAX_CONCURRENT_BATCHES || "1"
+    );
 
-    const batchSize = 50;
-    const batches = [];
-    for (let i = 0; i < movies.length; i += batchSize) {
-      batches.push(movies.slice(i, i + batchSize));
-    }
+    console.log(`Processing ${movies.length} movies for sparse embeddings...`);
+    console.log(
+      `Batch configuration: ${maxRecordsPerBatch} records per batch, ${maxConcurrentBatches} concurrent batches`
+    );
 
     // Initialize progress
     (global as any).sparseProgress = {
@@ -62,60 +64,144 @@ export default defineEventHandler(async (event) => {
     };
 
     let processedCount = 0;
+    let totalRecords = 0;
 
     const pc = await initPinecone();
     const index = pc.index(PINECONE_INDEXES.MOVIES_SPARSE);
 
-    // Simulate batch processing with progress updates
-    for (let i = 0; i < batches.length; i++) {
-      const batch = batches[i];
+    let currentBatch: any[] = [];
+    let batchCount = 0;
+    let pendingBatches: Promise<void>[] = [];
 
+    // Rate limiting helper
+    const delay = (ms: number) =>
+      new Promise((resolve) => setTimeout(resolve, ms));
+
+    for (const movie of movies) {
       try {
-        // Convert movies to records for upsert
-        const records = batch.map((movie) => {
-          // Convert genre string to array of strings
-          const genreArray = movie.genre
-            ? movie.genre
-                .split(",")
-                .map((g: string) => g.trim().toLowerCase())
-                .filter((g: string) => g.length > 0)
-            : [];
+        // Use plot if available, otherwise fallback to overview
+        const plotText = movie.plot || movie.overview || "";
 
-          // Convert release_date string to numeric timestamp
-          const releaseTimestamp = dateToTimestamp(movie.release_date);
+        if (!plotText.trim()) {
+          // Skip movies with no plot or overview
+          processedCount++;
+          continue;
+        }
 
-          return {
-            id: movie.id.toString(),
-            text: `# ${movie.title}
-${movie.overview || ""}
-${movie.genre ? `**Genre:** ${movie.genre}` : ""}`,
-            title: movie.title,
-            genre: genreArray,
-            ...(releaseTimestamp && { release_date: releaseTimestamp }),
-          };
+        // Convert genre string to array of strings
+        const genreArray = movie.genre
+          ? movie.genre
+              .split(",")
+              .map((g: string) => g.trim().toLowerCase())
+              .filter((g: string) => g.length > 0)
+          : [];
+
+        // Convert release_date string to numeric timestamp
+        const releaseTimestamp = dateToTimestamp(movie.release_date);
+
+        // Create a single record with the entire plot text
+        currentBatch.push({
+          id: movie.id.toString(),
+          text: plotText,
+          title: movie.title,
+          genre: genreArray,
+          movie_id: movie.id,
+          ...(releaseTimestamp && { release_date: releaseTimestamp }),
         });
 
-        await index.upsertRecords(records);
+        // If batch is full, start processing it in parallel
+        if (currentBatch.length >= maxRecordsPerBatch) {
+          const batchToProcess = [...currentBatch];
+          const currentBatchCount = batchCount + 1;
 
-        processedCount += batch.length;
+          // Create a promise for this batch
+          const batchPromise = (async () => {
+            try {
+              await index.upsertRecords(batchToProcess);
+              totalRecords += batchToProcess.length;
+              console.log(
+                `Completed batch ${currentBatchCount}: ${batchToProcess.length} records (${processedCount}/${movies.length} movies processed)`
+              );
+              // Add delay after successful batch to respect rate limits
+              await delay(1000); // 1 second delay between batches
+            } catch (error) {
+              console.error(
+                `Error processing batch ${currentBatchCount}:`,
+                error
+              );
+              // If we hit rate limits, wait longer
+              if (
+                error &&
+                typeof error === "object" &&
+                "status" in error &&
+                error.status === 429
+              ) {
+                console.log(
+                  `Rate limit hit, waiting 5 seconds before continuing...`
+                );
+                await delay(5000);
+              }
+            }
+          })();
+
+          pendingBatches.push(batchPromise);
+          batchCount++;
+          currentBatch = [];
+
+          // If we have too many pending batches, wait for one to complete
+          if (pendingBatches.length >= maxConcurrentBatches) {
+            await Promise.race(pendingBatches);
+            // Clean up by removing the first promise (simplified approach)
+            pendingBatches.shift();
+          }
+        }
+
+        processedCount++;
 
         // Update global progress
         (global as any).sparseProgress.processed = processedCount;
-
-        console.log(
-          `Processed batch ${i + 1}/${batches.length}: ${processedCount}/${
-            movies.length
-          } movies`
-        );
       } catch (error) {
-        console.error(`Error processing batch ${i + 1}:`, error);
-        // Continue processing other batches even if one fails
+        console.error(`Error processing movie ${movie.id}:`, error);
+        processedCount++;
+        // Continue processing other movies even if one fails
       }
+    }
+
+    // Upsert any remaining records in the final batch
+    if (currentBatch.length > 0) {
+      const batchToProcess = [...currentBatch];
+      const currentBatchCount = batchCount + 1;
+
+      const batchPromise = (async () => {
+        try {
+          await index.upsertRecords(batchToProcess);
+          totalRecords += batchToProcess.length;
+          console.log(
+            `Completed final batch ${currentBatchCount}: ${batchToProcess.length} records (${processedCount}/${movies.length} movies processed)`
+          );
+        } catch (error) {
+          console.error(
+            `Error processing final batch ${currentBatchCount}:`,
+            error
+          );
+        }
+      })();
+
+      pendingBatches.push(batchPromise);
+      batchCount++;
+    }
+
+    // Wait for all remaining batches to complete
+    if (pendingBatches.length > 0) {
+      console.log(
+        `Waiting for ${pendingBatches.length} remaining batches to complete...`
+      );
+      await Promise.all(pendingBatches);
     }
 
     // Mark as completed
     const result = {
-      message: `Sparse embeddings generated successfully! Processed ${processedCount} movies.`,
+      message: `Sparse embeddings generated successfully! Processed ${processedCount} movies with ${totalRecords} total records. (Config: ${maxRecordsPerBatch} records/batch, ${maxConcurrentBatches} concurrent)`,
       status: "completed",
       timestamp: new Date().toISOString(),
     };
