@@ -6,8 +6,6 @@ export default defineEventHandler(async (event) => {
   const limit = parseInt(query.limit as string) || 20;
   const offset = (page - 1) * limit;
 
-  console.log(`Movies API - Page: ${page}, Limit: ${limit}, Offset: ${offset}`);
-
   try {
     // Get total count
     const countStmt = db.prepare("SELECT COUNT(*) as total FROM movies");
@@ -25,10 +23,6 @@ export default defineEventHandler(async (event) => {
     const moviesWithWatchedStatus = addWatchedStatusToMovies(movies, db);
 
     const totalPages = Math.ceil(total / limit);
-
-    console.log(
-      `Movies API - Total: ${total}, Total Pages: ${totalPages}, Movies returned: ${movies.length}`
-    );
 
     return {
       movies: moviesWithWatchedStatus,

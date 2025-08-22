@@ -65,6 +65,4 @@ async function ensureIndexesExist(pc: Pinecone) {
       waitUntilReady: true,
     });
   }
-
-  console.log("Index validation completed");
 }

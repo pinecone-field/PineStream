@@ -74,14 +74,11 @@ Query: "robots exploring space and fighting aliens" → {"genres": ["action", "a
     });
 
     const response = completion.choices[0]?.message?.content || "{}";
-    console.log("Raw Groq response:", response);
 
     try {
       // Extract JSON from the response (in case it includes explanatory text)
       const jsonString = extractJSONFromResponse(response);
       const filters = JSON.parse(jsonString) as SearchFilters;
-
-      console.log("Parsed filters:", filters);
 
       return {
         genres: filters.genres || undefined,
@@ -113,7 +110,6 @@ Query: "robots exploring space and fighting aliens" → {"genres": ["action", "a
 export default defineEventHandler(async (event) => {
   // Handle POST request with body
   const body = await readBody(event);
-  console.log("POST body received:", body);
 
   const searchDescription = body.description as string;
   const limit = Math.min(parseInt(String(body.limit)) || 50, 50);
@@ -126,14 +122,8 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    console.log(
-      "Semantic search requested with description:",
-      searchDescription
-    );
-
     // Analyze the search query using Groq to extract genres and date range
     const filters = await analyzeSearchQuery(searchDescription);
-    console.log("Extracted filters for Pinecone metadata filtering:", filters);
 
     const pc = await initPinecone();
     const index = pc.index(PINECONE_INDEXES.MOVIES_DENSE);
@@ -159,8 +149,6 @@ export default defineEventHandler(async (event) => {
       };
     }
 
-    console.log("Pinecone metadata filter:", metadataFilter);
-
     // STEP 3: Perform hybrid search using both dense and sparse embeddings
     // This combines semantic understanding (dense) with keyword matching (sparse)
 
@@ -176,7 +164,6 @@ export default defineEventHandler(async (event) => {
       denseSearchOptions.filter = metadataFilter;
     }
     const denseResults = await denseIndex.searchRecords(denseSearchOptions);
-    console.log("Dense results:", denseResults.result.hits.length, "chunks");
 
     // Sparse embeddings capture specific keywords and phrases
     const sparseIndex = pc.index(PINECONE_INDEXES.MOVIES_SPARSE);
@@ -190,7 +177,6 @@ export default defineEventHandler(async (event) => {
       sparseSearchOptions.filter = metadataFilter;
     }
     const sparseResults = await sparseIndex.searchRecords(sparseSearchOptions);
-    console.log("Sparse results:", sparseResults.result.hits.length, "records");
 
     // STEP 4: Extract unique movie IDs from both search results
     const uniqueMovieIds = new Set<number>();
@@ -211,11 +197,8 @@ export default defineEventHandler(async (event) => {
       }
     });
 
-    console.log("Unique movies found:", uniqueMovieIds.size);
-
     // STEP 5: Fetch movie plots from database for reranking
     if (uniqueMovieIds.size === 0) {
-      console.log("No movies found, returning empty results");
       return {
         movies: [],
         total: 0,
@@ -243,18 +226,12 @@ export default defineEventHandler(async (event) => {
       };
     });
 
-    console.log("Movies prepared for reranking:", allDescriptions.length);
-
     // STEP 7: Rerank movies using the sophisticated model
     const rerankResults = await pc.inference.rerank(
       "bge-reranker-v2-m3",
       searchDescription,
       allDescriptions,
       { topN: limit, rankFields: ["text"], returnDocuments: true }
-    );
-    console.log(
-      "Rerank results:",
-      rerankResults.data.map((movie) => movie.document?.id)
     );
 
     // STEP 8: Extract similarity scores and fetch full movie data

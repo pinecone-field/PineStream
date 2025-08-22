@@ -119,24 +119,6 @@ describe("RecursiveCharacterTextSplitter", () => {
       expect(overlap.length).toBeGreaterThanOrEqual(100);
       expect(overlap.length).toBeLessThanOrEqual(expectedOverlap * 2);
     }
-
-    // Log the actual configuration being used
-    console.log(`\n=== Default Configuration Test ===`);
-    console.log(`Original text length: ${plotText.length} characters`);
-    console.log(`Number of chunks: ${chunks.length}`);
-    console.log(`Expected chunk size: ~${expectedChunkSize} characters`);
-    console.log(`Expected overlap: ~${expectedOverlap} characters`);
-
-    // Show chunk details
-    chunks.forEach((chunk: string, index: number) => {
-      console.log(`\n--- Chunk ${index + 1} (${chunk.length} chars) ---`);
-
-      if (index > 0) {
-        const previousChunk = chunks[index - 1];
-        const overlap = findOverlap(previousChunk, chunk);
-        console.log(`Overlap with previous: ${overlap.length} chars`);
-      }
-    });
   });
 
   it("should maintain text integrity across chunks", async () => {
@@ -144,40 +126,6 @@ describe("RecursiveCharacterTextSplitter", () => {
     const config = DEFAULT_SPLITTER_CONFIG;
 
     const chunks = await splitText(plotText);
-
-    // Log chunk information for debugging
-    console.log(`\n=== Text Splitter Test Results ===`);
-    console.log(`Original text length: ${plotText.length} characters`);
-    console.log(`Number of chunks: ${chunks.length}`);
-    console.log(`Expected chunk size: ~${config.chunkSize} characters`);
-    console.log(`Expected overlap: ~${config.chunkOverlap} characters`);
-
-    chunks.forEach((chunk: string, index: number) => {
-      console.log(`\n--- Chunk ${index + 1} (${chunk.length} chars) ---`);
-
-      // Show start of chunk
-      const startText = chunk.substring(0, 100);
-      console.log(`START: ${startText}${chunk.length > 100 ? "..." : ""}`);
-
-      // Show end of chunk
-      if (chunk.length > 100) {
-        const endText = chunk.substring(chunk.length - 100);
-        console.log(`END:   ...${endText}`);
-      }
-
-      if (index > 0) {
-        const previousChunk = chunks[index - 1];
-        const overlap = findOverlap(previousChunk, chunk);
-        console.log(`Overlap with previous: ${overlap.length} chars`);
-        if (overlap.length > 0) {
-          console.log(
-            `Overlap text: "${overlap.substring(0, 50)}${
-              overlap.length > 50 ? "..." : ""
-            }"`
-          );
-        }
-      }
-    });
 
     // Test that all chunks contain meaningful content
     chunks.forEach((chunk: string, index: number) => {

@@ -245,7 +245,6 @@ const handleSearch = () => {
       });
       searchResults.value = response.movies || [];
     } catch (error) {
-      console.error("Search error:", error);
       searchResults.value = [];
     }
   }, 300); // 300ms debounce

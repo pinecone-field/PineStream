@@ -66,13 +66,6 @@ export default defineEventHandler(async (event) => {
       process.env.MAX_CONCURRENT_BATCHES || "1"
     );
 
-    console.log(
-      `Processing ${movies.length} movies for dense embeddings from both plot and overview text...`
-    );
-    console.log(
-      `Batch configuration: ${maxChunksPerBatch} chunks per batch, ${maxConcurrentBatches} concurrent batches`
-    );
-
     // Initialize progress
     (global as any).denseProgress = {
       isRunning: true,
@@ -162,9 +155,6 @@ export default defineEventHandler(async (event) => {
                 try {
                   await index.upsertRecords(batchToProcess);
                   totalChunks += batchToProcess.length;
-                  console.log(
-                    `Completed batch ${currentBatchCount}: ${batchToProcess.length} chunks (${processedCount}/${movies.length} movies processed)`
-                  );
                   // Add delay after successful batch to respect rate limits
                   await delay(1000); // 1 second delay between batches
                 } catch (error) {
@@ -179,9 +169,6 @@ export default defineEventHandler(async (event) => {
                     "status" in error &&
                     error.status === 429
                   ) {
-                    console.log(
-                      `Rate limit hit, waiting 5 seconds before continuing...`
-                    );
                     await delay(5000);
                   }
                 }
@@ -250,9 +237,6 @@ export default defineEventHandler(async (event) => {
                 try {
                   await index.upsertRecords(batchToProcess);
                   totalChunks += batchToProcess.length;
-                  console.log(
-                    `Completed batch ${currentBatchCount}: ${batchToProcess.length} chunks (${processedCount}/${movies.length} movies processed)`
-                  );
                   // Add delay after successful batch to respect rate limits
                   await delay(1000); // 1 second delay between batches
                 } catch (error) {
@@ -267,9 +251,6 @@ export default defineEventHandler(async (event) => {
                     "status" in error &&
                     error.status === 429
                   ) {
-                    console.log(
-                      `Rate limit hit, waiting 5 seconds before continuing...`
-                    );
                     await delay(5000);
                   }
                 }
@@ -309,9 +290,6 @@ export default defineEventHandler(async (event) => {
         try {
           await index.upsertRecords(batchToProcess);
           totalChunks += batchToProcess.length;
-          console.log(
-            `Completed final batch ${currentBatchCount}: ${batchToProcess.length} chunks (${processedCount}/${movies.length} movies processed)`
-          );
         } catch (error) {
           console.error(
             `Error processing final batch ${currentBatchCount}:`,
@@ -326,9 +304,6 @@ export default defineEventHandler(async (event) => {
 
     // Wait for all remaining batches to complete
     if (pendingBatches.length > 0) {
-      console.log(
-        `Waiting for ${pendingBatches.length} remaining batches to complete...`
-      );
       await Promise.all(pendingBatches);
     }
 

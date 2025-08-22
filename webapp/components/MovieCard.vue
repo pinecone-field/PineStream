@@ -131,9 +131,7 @@ const toggleWatched = async (event) => {
 
     // Update the movie object directly to reflect the change
     props.movie.isWatched = !isWatched.value;
-  } catch (error) {
-    console.error("Error toggling watched status:", error);
-  }
+  } catch (error) {}
 };
 
 // Handle card click

@@ -202,9 +202,6 @@ const loadSearchResults = async (page = 1) => {
 
     // If no movies returned and we're not on page 1, redirect to page 1
     if (movies.value.length === 0 && page > 1) {
-      console.log(
-        `No search results found on page ${page}, redirecting to page 1`
-      );
       router.push({
         query: {
           ...route.query,

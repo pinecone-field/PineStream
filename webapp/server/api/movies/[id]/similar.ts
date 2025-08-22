@@ -51,10 +51,6 @@ export default defineEventHandler(async (event) => {
           .filter((g: string) => g.length > 0)
       : [];
 
-    console.log("Current movie genres:", currentGenres);
-    console.log("Search text length:", combinedText.length);
-    console.log("Search text preview:", combinedText.substring(0, 200) + "...");
-
     // STEP 3: Initialize Pinecone and get sparse index
     const pc = await initPinecone();
     const sparseIndex = pc.index(PINECONE_INDEXES.MOVIES_SPARSE);
@@ -75,14 +71,8 @@ export default defineEventHandler(async (event) => {
       },
     });
 
-    console.log(
-      "Sparse search results:",
-      searchResults.result.hits.length,
-      "records"
-    );
-
     if (currentGenres.length > 0) {
-      console.log(`Filtered by genres: ${currentGenres.join(", ")}`);
+      // Filtered by genres
     }
 
     // STEP 5: Extract movie IDs and scores from results
@@ -99,8 +89,6 @@ export default defineEventHandler(async (event) => {
         }
       }
     });
-
-    console.log("Unique movies found:", movieScoreMap.size);
 
     // STEP 6: Fetch full movie data from database
     const movieIds = Array.from(movieScoreMap.keys());
@@ -124,13 +112,12 @@ export default defineEventHandler(async (event) => {
 
     // Sort by similarity score (higher scores = more similar)
     similarMovies.sort(
-      (a, b) => (b.similarityScore || 0) - (a.similarityScore || 0)
+      (a: any, b: any) =>
+        (movieScoreMap.get(b.id) || 0) - (movieScoreMap.get(a.id) || 0)
     );
 
     // Take top 10 results
     const topResults = similarMovies.slice(0, 10);
-
-    console.log("Returning", topResults.length, "similar movies");
 
     // STEP 8: Return results
     return {

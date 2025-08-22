@@ -29,9 +29,6 @@ describe("Text Splitter Comparison for Movie Plots", () => {
       Math.max(5, Math.floor(totalMovies.count * 0.1))
     );
 
-    console.log(`📊 Total movies with plots: ${totalMovies.count}`);
-    console.log(`🎯 Sample size: ${sampleSize} movies`);
-
     // Get a representative sample of movies
     const randomMoviesStmt = db.prepare(`
       SELECT id, title, plot, overview, genre, release_date 
@@ -45,8 +42,6 @@ describe("Text Splitter Comparison for Movie Plots", () => {
     if (sampleMovies.length === 0) {
       throw new Error("No movies with plots found in database for testing");
     }
-
-    console.log(`✅ Successfully sampled ${sampleMovies.length} movies`);
   });
 
   it("should compare different text splitters on multiple movie plots", async () => {
@@ -106,8 +101,6 @@ describe("Text Splitter Comparison for Movie Plots", () => {
     console.log(
       `\n🎬 Testing ${splitters.length} text splitters on ${sampleMovies.length} movies`
     );
-    console.log(`📝 Total plots to process: ${sampleMovies.length}`);
-    console.log();
 
     // Process each movie with each splitter
     for (let movieIndex = 0; movieIndex < sampleMovies.length; movieIndex++) {
@@ -115,14 +108,6 @@ describe("Text Splitter Comparison for Movie Plots", () => {
       const plotText = movie.plot || movie.overview || "";
 
       if (!plotText.trim()) continue;
-
-      console.log(
-        `\n🎬 Processing movie ${movieIndex + 1}/${sampleMovies.length}: "${
-          movie.title
-        }"`
-      );
-      console.log(`📝 Plot length: ${plotText.length} characters`);
-      console.log(`🎭 Genre: ${movie.genre || "Unknown"}`);
 
       for (
         let splitterIndex = 0;
@@ -142,17 +127,10 @@ describe("Text Splitter Comparison for Movie Plots", () => {
           result.totalOverlap += analysis.avgOverlap;
           result.totalSentenceBreaks += analysis.sentenceBreaks;
           result.totalCoherenceScore += analysis.coherenceScore;
-
-          console.log(
-            `  ✅ ${splitterInfo.name}: ${
-              chunks.length
-            } chunks, coherence: ${analysis.coherenceScore.toFixed(2)}/10`
-          );
         } catch (error) {
           const errorMessage =
             error instanceof Error ? error.message : String(error);
           result.errors.push(`Movie "${movie.title}": ${errorMessage}`);
-          console.log(`  ❌ ${splitterInfo.name}: ${errorMessage}`);
         }
       }
     }
@@ -169,37 +147,16 @@ describe("Text Splitter Comparison for Movie Plots", () => {
       }
     });
 
-    // Display aggregated results
-    console.log(`\n🏆 AGGREGATED COMPARISON RESULTS:`);
-    console.log(`=====================================`);
-    console.log(`📊 Based on ${sampleMovies.length} movie plots`);
-    console.log();
-
     // Sort by average coherence score
     const sortedResults = [...aggregatedResults].sort(
       (a, b) => b.avgCoherenceScore - a.avgCoherenceScore
     );
 
     sortedResults.forEach((result, index) => {
-      console.log(`${index + 1}. ${result.name}`);
-      console.log(
-        `   📊 Average coherence: ${result.avgCoherenceScore.toFixed(2)}/10`
-      );
-      console.log(`   🎬 Movies processed: ${result.totalMovies}`);
-      console.log(
-        `   📝 Average chunks per movie: ${result.avgChunkSize.toFixed(1)}`
-      );
-      console.log(
-        `   🔄 Average overlap: ${result.avgOverlap.toFixed(1)} chars`
-      );
-      console.log(
-        `   📖 Average sentence breaks: ${result.avgSentenceBreaks.toFixed(1)}`
-      );
-
+      // Results processed
       if (result.errors.length > 0) {
-        console.log(`   ⚠️  Errors: ${result.errors.length}`);
+        // Has errors
       }
-      console.log();
     });
 
     // Assertions
@@ -334,14 +291,6 @@ describe("Text Splitter Comparison for Movie Plots", () => {
 
       if (!plotText.trim()) continue;
 
-      console.log(
-        `\n🎬 Processing movie ${movieIndex + 1}/${sampleMovies.length}: "${
-          movie.title
-        }"`
-      );
-      console.log(`📝 Plot length: ${plotText.length} characters`);
-      console.log(`🎭 Genre: ${movie.genre || "Unknown"}`);
-
       for (let configIndex = 0; configIndex < configs.length; configIndex++) {
         const config = configs[configIndex];
         const result = aggregatedResults[configIndex];
@@ -361,17 +310,10 @@ describe("Text Splitter Comparison for Movie Plots", () => {
           result.totalOverlap += analysis.avgOverlap;
           result.totalSentenceBreaks += analysis.sentenceBreaks;
           result.totalCoherenceScore += analysis.coherenceScore;
-
-          console.log(
-            `  ✅ ${config.name}: ${
-              chunks.length
-            } chunks, coherence: ${analysis.coherenceScore.toFixed(2)}/10`
-          );
         } catch (error) {
           const errorMessage =
             error instanceof Error ? error.message : String(error);
           result.errors.push(`Movie "${movie.title}": ${errorMessage}`);
-          console.log(`  ❌ ${config.name}: ${errorMessage}`);
         }
       }
     }
@@ -389,45 +331,16 @@ describe("Text Splitter Comparison for Movie Plots", () => {
       }
     });
 
-    // Display aggregated results
-    console.log(
-      `\n🏆 RECURSIVE CHARACTER TEXT SPLITTER CONFIGURATION COMPARISON:`
-    );
-    console.log(
-      `================================================================`
-    );
-    console.log(`📊 Based on ${sampleMovies.length} movie plots`);
-    console.log();
-
     // Sort by average coherence score
     const sortedResults = [...aggregatedResults].sort(
       (a, b) => b.avgCoherenceScore - a.avgCoherenceScore
     );
 
     sortedResults.forEach((result, index) => {
-      console.log(`${index + 1}. ${result.name}`);
-      console.log(`   📋 ${result.description}`);
-      console.log(
-        `   📊 Average coherence: ${result.avgCoherenceScore.toFixed(2)}/10`
-      );
-      console.log(`   🎬 Movies processed: ${result.totalMovies}`);
-      console.log(
-        `   📝 Average chunks per movie: ${result.avgChunksPerMovie.toFixed(1)}`
-      );
-      console.log(
-        `   🔄 Average overlap: ${result.avgOverlap.toFixed(1)} chars`
-      );
-      console.log(
-        `   📖 Average sentence breaks: ${result.avgSentenceBreaks.toFixed(1)}`
-      );
-      console.log(
-        `   ⚙️  Configuration: ${result.chunkSize}/${result.chunkOverlap}`
-      );
-
+      // Results processed
       if (result.errors.length > 0) {
-        console.log(`   ⚠️  Errors: ${result.errors.length}`);
+        // Has errors
       }
-      console.log();
     });
 
     // Assertions

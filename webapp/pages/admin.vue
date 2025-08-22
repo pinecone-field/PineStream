@@ -331,14 +331,6 @@ const startProgressPolling = () => {
           total: denseProgressData.total,
           startTime: denseProgressData.startTime,
         };
-
-        // Debug logging
-        console.log("Dense progress update:", {
-          processed: denseProgressData.processed,
-          total: denseProgressData.total,
-          startTime: denseProgressData.startTime,
-          elapsed: (Date.now() - denseProgressData.startTime) / 1000,
-        });
       } else if (denseProgress.value.isGenerating) {
         // Dense generation completed
         denseProgress.value = {
@@ -372,14 +364,6 @@ const startProgressPolling = () => {
           total: sparseProgressData.total,
           startTime: sparseProgressData.startTime,
         };
-
-        // Debug logging
-        console.log("Sparse progress update:", {
-          processed: sparseProgressData.processed,
-          total: sparseProgressData.total,
-          startTime: sparseProgressData.startTime,
-          elapsed: (Date.now() - sparseProgressData.startTime) / 1000,
-        });
       } else if (sparseProgress.value.isGenerating) {
         // Sparse generation completed
         sparseProgress.value = {
@@ -441,7 +425,6 @@ const generateDenseEmbeddings = async () => {
     })
       .then((result) => {
         // Final result handling is done by polling
-        console.log("Generation completed:", result);
       })
       .catch((error) => {
         console.error("Generation failed:", error);
@@ -474,7 +457,6 @@ const generateSparseEmbeddings = async () => {
     })
       .then((result) => {
         // Final result handling is done by polling
-        console.log("Sparse generation completed:", result);
       })
       .catch((error) => {
         console.error("Sparse generation failed:", error);
