@@ -1,28 +1,25 @@
 const db = getDatabase();
 
-async function getDenseEmbeddingsCount(): Promise<number> {
+async function getEmbeddingsCounts(): Promise<{
+  dense: number;
+  sparse: number;
+}> {
   try {
     const pc = await initPinecone();
-    const index = pc.index(PINECONE_INDEXES.MOVIES_DENSE);
-    const stats = await index.describeIndexStats();
-    const count = stats.totalRecordCount || 0;
-    return count;
-  } catch (error) {
-    console.error("Error getting dense embeddings count:", error);
-    return 0;
-  }
-}
 
-async function getSparseEmbeddingsCount(): Promise<number> {
-  try {
-    const pc = await initPinecone();
-    const index = pc.index(PINECONE_INDEXES.MOVIES_SPARSE);
-    const stats = await index.describeIndexStats();
-    const count = stats.totalRecordCount || 0;
-    return count;
+    // Make both API calls in parallel for better performance
+    const [denseStats, sparseStats] = await Promise.all([
+      pc.index(PINECONE_INDEXES.MOVIES_DENSE).describeIndexStats(),
+      pc.index(PINECONE_INDEXES.MOVIES_SPARSE).describeIndexStats(),
+    ]);
+
+    return {
+      dense: denseStats.totalRecordCount || 0,
+      sparse: sparseStats.totalRecordCount || 0,
+    };
   } catch (error) {
-    console.error("Error getting sparse embeddings count:", error);
-    return 0;
+    console.error("Error getting embeddings counts:", error);
+    return { dense: 0, sparse: 0 };
   }
 }
 
@@ -35,25 +32,25 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    // Get total movies count
+    // Get database stats (these are fast local operations)
     const totalMoviesStmt = db.prepare("SELECT COUNT(*) as count FROM movies");
-    const totalMovies = totalMoviesStmt.get() as { count: number };
-
-    // Get watched movies count
     const watchedMoviesStmt = db.prepare(
       "SELECT COUNT(*) as count FROM user_watched_movies"
     );
-    const watchedMovies = watchedMoviesStmt.get() as { count: number };
 
-    // Get embedding counts from Pinecone (implemented by students)
-    const denseEmbeddings = await getDenseEmbeddingsCount();
-    const sparseEmbeddings = await getSparseEmbeddingsCount();
+    const [totalMovies, watchedMovies] = await Promise.all([
+      Promise.resolve(totalMoviesStmt.get() as { count: number }),
+      Promise.resolve(watchedMoviesStmt.get() as { count: number }),
+    ]);
+
+    // Get embedding counts from Pinecone (optimized with parallel calls)
+    const embeddings = await getEmbeddingsCounts();
 
     return {
       totalMovies: totalMovies.count,
       watchedMovies: watchedMovies.count,
-      denseEmbeddings,
-      sparseEmbeddings,
+      denseEmbeddings: embeddings.dense,
+      sparseEmbeddings: embeddings.sparse,
     };
   } catch (error) {
     console.error("Error fetching database stats:", error);

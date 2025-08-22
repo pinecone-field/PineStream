@@ -6,22 +6,33 @@ export const PINECONE_INDEXES = {
   MOVIES_SPARSE: "movies-sparse",
 } as const;
 
-// Initialize Pinecone client
+// Singleton Pinecone client instance
+let pineconeClient: Pinecone | null = null;
+let indexesValidated = false;
+
+// Initialize Pinecone client (with index validation)
 export async function initPinecone() {
+  if (pineconeClient) {
+    return pineconeClient;
+  }
+
   const apiKey = process.env.PINECONE_API_KEY;
 
   if (!apiKey) {
     throw new Error("PINECONE_API_KEY environment variable is required");
   }
 
-  const pc = new Pinecone({
+  pineconeClient = new Pinecone({
     apiKey: apiKey,
   });
 
-  // TODO: Check if indexes exist and create those that don't
-  await ensureIndexesExist(pc);
+  // Only validate indexes once when the module is first loaded
+  if (!indexesValidated) {
+    await ensureIndexesExist(pineconeClient);
+    indexesValidated = true;
+  }
 
-  return pc;
+  return pineconeClient;
 }
 
 // Helper function to ensure required indexes exist
