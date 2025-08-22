@@ -49,7 +49,9 @@ export default defineEventHandler(async (event) => {
       process.env.MAX_CONCURRENT_BATCHES || "1"
     );
 
-    console.log(`Processing ${movies.length} movies for sparse embeddings...`);
+    console.log(
+      `Processing ${movies.length} movies for sparse embeddings from both plot and overview text...`
+    );
     console.log(
       `Batch configuration: ${maxRecordsPerBatch} records per batch, ${maxConcurrentBatches} concurrent batches`
     );
@@ -79,11 +81,12 @@ export default defineEventHandler(async (event) => {
 
     for (const movie of movies) {
       try {
-        // Use plot if available, otherwise fallback to overview
-        const plotText = movie.plot || movie.overview || "";
+        // Get both plot and overview text
+        const plotText = movie.plot || "";
+        const overviewText = movie.overview || "";
 
-        if (!plotText.trim()) {
-          // Skip movies with no plot or overview
+        // Skip movies with no plot AND no overview
+        if (!plotText.trim() && !overviewText.trim()) {
           processedCount++;
           continue;
         }
@@ -99,15 +102,31 @@ export default defineEventHandler(async (event) => {
         // Convert release_date string to numeric timestamp
         const releaseTimestamp = dateToTimestamp(movie.release_date);
 
-        // Create a single record with the entire plot text
-        currentBatch.push({
-          id: movie.id.toString(),
-          text: plotText,
-          title: movie.title,
-          genre: genreArray,
-          movie_id: movie.id,
-          ...(releaseTimestamp && { release_date: releaseTimestamp }),
-        });
+        // Create a record for plot text if available
+        if (plotText.trim()) {
+          currentBatch.push({
+            id: `${movie.id}_plot`,
+            text: plotText,
+            title: movie.title,
+            genre: genreArray,
+            movie_id: movie.id,
+            source: "plot",
+            ...(releaseTimestamp && { release_date: releaseTimestamp }),
+          });
+        }
+
+        // Create a record for overview text if available
+        if (overviewText.trim()) {
+          currentBatch.push({
+            id: `${movie.id}_overview`,
+            text: overviewText,
+            title: movie.title,
+            genre: genreArray,
+            movie_id: movie.id,
+            source: "overview",
+            ...(releaseTimestamp && { release_date: releaseTimestamp }),
+          });
+        }
 
         // If batch is full, start processing it in parallel
         if (currentBatch.length >= maxRecordsPerBatch) {
@@ -201,7 +220,7 @@ export default defineEventHandler(async (event) => {
 
     // Mark as completed
     const result = {
-      message: `Sparse embeddings generated successfully! Processed ${processedCount} movies with ${totalRecords} total records. (Config: ${maxRecordsPerBatch} records/batch, ${maxConcurrentBatches} concurrent)`,
+      message: `Sparse embeddings generated successfully! Processed ${processedCount} movies with ${totalRecords} total records`,
       status: "completed",
       timestamp: new Date().toISOString(),
     };
