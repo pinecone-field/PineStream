@@ -35,6 +35,22 @@ export default defineEventHandler(async (event) => {
   try {
     const startTime = Date.now();
 
+    // Create chunk_mappings table if it doesn't exist
+    db.prepare(
+      `
+      CREATE TABLE IF NOT EXISTS chunk_mappings (
+        chunk_id TEXT PRIMARY KEY,
+        movie_id INTEGER NOT NULL,
+        chunk_index INTEGER NOT NULL,
+        total_chunks INTEGER NOT NULL,
+        FOREIGN KEY (movie_id) REFERENCES movies(id)
+      )
+    `
+    ).run();
+
+    // Clear existing chunk mappings
+    db.prepare("DELETE FROM chunk_mappings").run();
+
     // Get all movies from database
     const moviesStmt = db.prepare(`
       SELECT id, title, overview, plot, genre, release_date, vote_average 
@@ -106,6 +122,14 @@ export default defineEventHandler(async (event) => {
         for (let chunkIndex = 0; chunkIndex < chunks.length; chunkIndex++) {
           const chunk = chunks[chunkIndex];
           const chunkId = `${movie.id}_chunk_${chunkIndex}`;
+
+          // Store chunk mapping in database
+          db.prepare(
+            `
+            INSERT INTO chunk_mappings (chunk_id, movie_id, chunk_index, total_chunks)
+            VALUES (?, ?, ?, ?)
+          `
+          ).run(chunkId, movie.id, chunkIndex, chunks.length);
 
           currentBatch.push({
             id: chunkId,
