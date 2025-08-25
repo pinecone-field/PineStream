@@ -1,90 +1,145 @@
-# PineStream - Movie Streaming Platform
+# PineStream - AI-Powered Movie Recommendation Workshop
 
-A modern movie streaming platform built with Nuxt 3 and SQLite.
+Welcome to the PineStream workshop! This is a hands-on workshop where you'll build an AI-powered movie recommendation system using Pinecone for vector search and Groq for natural language understanding.
 
-## Features
+## 🚀 Quick Start
 
-### User Profile & Watched Movies
+### Prerequisites
 
-The application now includes a comprehensive user profile system that allows users to:
+- Node.js 18+ installed
+- pnpm package manager installed
+- Pinecone and Groq API keys (provided during workshop)
 
-- **View Profile**: Access your profile page to see your movie watching statistics
-- **Mark Movies as Watched**: Add movies to your watched list from any movie page or search results
-- **Remove from Watched**: Remove movies from your watched list
-- **Clear All Watched**: Reset your entire watched history
-- **View Statistics**: See your total watched movies, average rating, and favorite genre
-
-### How to Use
-
-1. **Access Profile**: Click the profile icon in the top-right corner of any page
-2. **Mark Movies as Watched**:
-   - On movie detail pages: Click the "Mark as Watched" button
-   - On movie cards: Hover over a movie and click the eye icon
-3. **Add Movies to Watched**:
-   - Go to your profile page
-   - Click "Add Movie to Watched"
-   - Search for a movie and click to add it
-4. **Remove Movies**:
-   - On your profile page: Hover over a watched movie and click the X button
-   - On movie detail pages: Click the "Watched" button to toggle
-5. **Clear All Watched**: On your profile page, click "Clear All Watched"
-
-### Database Schema
-
-The application uses SQLite with the following tables:
-
-```sql
--- Movies table (existing)
-CREATE TABLE movies (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    title TEXT NOT NULL,
-    overview TEXT,
-    release_date TEXT,
-    popularity REAL,
-    vote_count INTEGER,
-    vote_average REAL,
-    original_language TEXT,
-    genre TEXT,
-    poster_url TEXT
-);
-
--- User watched movies table (new)
-CREATE TABLE user_watched_movies (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    movie_id INTEGER NOT NULL,
-    watched_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (movie_id) REFERENCES movies(id) ON DELETE CASCADE
-);
-```
-
-### API Endpoints
-
-- `GET /api/user/watched` - Get all watched movies
-- `POST /api/user/watched` - Add movie to watched list
-- `DELETE /api/user/watched` - Remove movie from watched list
-- `POST /api/user/clear-watched` - Clear all watched movies
-
-### Components
-
-- `MovieCard.vue` - Reusable movie card component with watched status
-- `Header.vue` - Updated with profile navigation
-- `Profile.vue` - User profile page with watched movies management
-
-## Development
+### Setup & Run
 
 ```bash
 # Install dependencies
-npm install
+pnpm install
 
-# Start development server
-npm run dev
+# Start the development server
+pnpm dev
 
-# Build for production
-npm run build
+# The app will be available at http://localhost:3000
 ```
 
-## Notes
+## 📁 Project Structure
 
-- This is a demo application with no actual authentication
-- All user data is stored locally in SQLite
-- The watched movies feature works for a single user session
+### Key Directories
+
+```
+webapp/
+├── server/api/           # Backend API endpoints
+├── components/           # Vue components
+├── pages/               # Application pages
+├── stores/              # State management
+└── test/                # Test files
+```
+
+### Main Files You'll Work With
+
+- `server/api/admin/generate-dense-embeddings.ts` - Generate dense embeddings
+- `server/api/admin/generate-sparse-embeddings.ts` - Generate sparse embeddings
+- `server/api/user/recommendations.ts` - User movie recommendations
+- `server/api/search/semantic.ts` - Semantic search functionality
+- `server/api/movies/[id]/similar.ts` - Similar movies (✅ Already implemented)
+
+## 🎯 Workshop Challenges
+
+### Challenge 1: Environment Setup ✅
+
+- **Status**: Already complete
+- **What**: Pinecone and Groq configured, database ready
+
+### Challenge 2: Dense Embeddings
+
+- **File**: `server/api/admin/generate-dense-embeddings.ts`
+- **Goal**: Generate and store dense embeddings for movie plots
+
+### Challenge 3: Sparse Embeddings
+
+- **File**: `server/api/admin/generate-sparse-embeddings.ts`
+- **Goal**: Generate and store sparse embeddings for full movies
+
+### Challenge 4: User Recommendations
+
+- **File**: `server/api/user/recommendations.ts`
+- **Goal**: Build centroid-based movie recommendations
+
+### Challenge 5: Basic Search
+
+- **File**: `server/api/search/semantic.ts`
+- **Goal**: Implement vector similarity search
+
+### Challenge 6: LLM-Enhanced Search
+
+- **File**: `server/api/search/semantic.ts`
+- **Goal**: Add Groq-powered query understanding
+
+### Challenge 7: RAG Implementation ✅
+
+- **File**: `server/api/movies/[id]/similar.ts`
+- **Status**: Already complete - working similar movies with AI descriptions
+
+## 🧪 Testing Your Work
+
+### Admin Interface
+
+- Visit `/admin` to test embedding generation
+- Monitor progress and check for errors
+
+### Search & Discovery
+
+- Use `/search/semantic` to test search functionality
+- Try natural language queries like "action movies from the 90s"
+
+### Movie Recommendations
+
+- Visit `/profile` to see user recommendations
+- Mark movies as watched to build your preference profile
+
+### Similar Movies
+
+- Visit any movie detail page (e.g., `/movie/1`)
+- See AI-generated similarity descriptions
+
+## 🔧 Development Commands
+
+```bash
+# Run tests
+pnpm test:run
+
+# Build for production
+pnpm build
+
+# Preview production build
+pnpm preview
+```
+
+## 📚 What You'll Learn
+
+- **Vector Databases**: Store and search movie embeddings
+- **Embeddings**: Dense vs. sparse vector representations
+- **Hybrid Search**: Combine vector similarity with metadata filtering
+- **LLM Integration**: Use Groq for natural language understanding
+- **RAG Pattern**: Retrieval Augmented Generation for movie recommendations
+
+## 🆘 Getting Help
+
+- Check the `WORKSHOP_PLAN.md` for detailed challenge instructions
+- Look at the working RAG implementation in `similar.ts` for reference
+- Use the admin interface to monitor your progress
+- Ask your workshop instructor for guidance
+
+## 🎉 Success Criteria
+
+Your workshop is complete when:
+
+- ✅ Embeddings are generated and stored in Pinecone
+- ✅ User recommendations work based on watched movies
+- ✅ Semantic search returns relevant results
+- ✅ LLM-enhanced search understands natural language queries
+- ✅ Similar movies show AI-generated descriptions
+
+---
+
+**Good luck with your workshop! You're building a production-ready AI recommendation system! 🚀**
