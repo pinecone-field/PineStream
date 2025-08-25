@@ -384,7 +384,7 @@ export class AdminService {
     // Use a transaction for better performance and atomicity
     const transaction = this.db.transaction(() => {
       const stmt = this.db.prepare(`
-        INSERT INTO chunk_mappings (id, movieId, chunkIndex, totalChunks, source) 
+        INSERT INTO chunk_mappings (chunk_id, movie_id, chunk_index, total_chunks, source) 
         VALUES (?, ?, ?, ?, ?)
       `);
 
