@@ -34,7 +34,7 @@ export default defineEventHandler(async (event) => {
     }
 
     // Get embeddings from the dense index using Pinecone
-    const pc = await initPinecone();
+    const pc = await getPineconeClient();
 
     const indexParamsResponse = await pc.describeIndex(
       PINECONE_INDEXES.MOVIES_DENSE

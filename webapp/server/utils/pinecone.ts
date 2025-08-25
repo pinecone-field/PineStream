@@ -11,7 +11,7 @@ let pineconeClient: Pinecone | null = null;
 let indexesValidated = false;
 
 // Initialize Pinecone client (with index validation)
-export async function initPinecone() {
+export async function getPineconeClient() {
   if (pineconeClient) {
     return pineconeClient;
   }

@@ -61,7 +61,7 @@ Query: "car chasing movie from the 90s" → {"genres": ["action"], "dateRange": 
 Query: "comedy films from 2020" → {"genres": ["comedy"], "dateRange": {"start": "2020-01-01", "end": "2020-12-31"}, "rephrasedQuery": "any movie", "userMessage": "Based on your request, we filtered movies by comedy \`genres\` and released in \`2020\`.", "hasFilters": true}
 Query: "robots exploring space and fighting aliens" → {"genres": ["action", "adventure", "sci-fi"], "dateRange": null, "rephrasedQuery": "robots exploring space and fighting aliens", "userMessage": "Based on your request, we filtered movies by \`action\`, \`adventure\`, and \`sci-fi\` genres.", "hasFilters": true}
 `;
-  const groq = await initGroq();
+  const groq = await getGroqClient();
   try {
     const completion = await groq.chat.completions.create({
       messages: [
@@ -125,7 +125,7 @@ export default defineEventHandler(async (event) => {
     // Analyze the search query using Groq to extract genres and date range
     const filters = await analyzeSearchQuery(searchDescription);
 
-    const pc = await initPinecone();
+    const pc = await getPineconeClient();
     const index = pc.index(PINECONE_INDEXES.MOVIES_DENSE);
 
     // Build metadata filter for Pinecone

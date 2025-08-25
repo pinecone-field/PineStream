@@ -78,7 +78,7 @@ export default defineEventHandler(async (event) => {
     let processedCount = 0;
     let totalChunks = 0;
 
-    const pc = await initPinecone();
+    const pc = await getPineconeClient();
     const index = pc.index(PINECONE_INDEXES.MOVIES_DENSE);
 
     let currentBatch: any[] = [];

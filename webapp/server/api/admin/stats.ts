@@ -5,7 +5,7 @@ async function getEmbeddingsCounts(): Promise<{
   sparse: number;
 }> {
   try {
-    const pc = await initPinecone();
+    const pc = await getPineconeClient();
 
     // Make both API calls in parallel for better performance
     const [denseStats, sparseStats] = await Promise.all([
