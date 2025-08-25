@@ -10,29 +10,32 @@
 
     <!-- Movie Details -->
     <div v-else-if="movie" class="pt-20">
-      <!-- Hero Section -->
-      <section class="relative h-screen">
-        <img
-          v-if="movie.poster_url"
-          :src="movie.poster_url"
-          :alt="movie.title"
-          class="absolute inset-0 w-full h-full object-cover"
-        />
-        <div
-          v-else
-          class="absolute inset-0 bg-gradient-to-br from-gray-900 to-black"
-        ></div>
-        <div
-          class="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent"
-        ></div>
+      <!-- Split Screen Layout -->
+      <div class="grid grid-cols-1 lg:grid-cols-2 h-[calc(100vh-8rem)]">
+        <!-- Left: Hero Image -->
+        <div class="relative overflow-hidden h-[calc(100vh-8rem)]">
+          <img
+            v-if="movie.poster_url"
+            :src="movie.poster_url"
+            :alt="movie.title"
+            class="w-full h-full object-cover"
+          />
+          <div
+            v-else
+            class="w-full h-full bg-gradient-to-br from-gray-900 to-black"
+          ></div>
+          <div
+            class="absolute inset-0 bg-gradient-to-r from-black/80 via-black/40 to-transparent"
+          ></div>
 
-        <div class="absolute bottom-0 left-0 right-0 p-8">
-          <div class="container mx-auto">
-            <div class="max-w-4xl">
-              <h1 class="text-5xl font-bold mb-4">{{ movie.title }}</h1>
+          <div class="absolute bottom-0 left-0 right-0 p-6">
+            <div class="max-w-2xl">
+              <h1 class="text-3xl font-bold mb-3 text-white">
+                {{ movie.title }}
+              </h1>
 
               <!-- Movie Meta -->
-              <div class="flex items-center space-x-4 mb-4 text-sm">
+              <div class="flex items-center space-x-4 mb-3 text-xs">
                 <span class="text-green-400">{{ movie.release_date }}</span>
                 <span class="text-gray-400">•</span>
                 <span class="text-yellow-400"
@@ -51,23 +54,23 @@
               </div>
 
               <!-- Genre -->
-              <div v-if="movie.genre" class="mb-4">
-                <span class="text-gray-300">{{ movie.genre }}</span>
+              <div v-if="movie.genre" class="mb-3">
+                <span class="text-gray-300 text-sm">{{ movie.genre }}</span>
               </div>
 
               <!-- Overview -->
               <p
                 v-if="movie.overview"
-                class="text-lg text-gray-300 mb-6 max-w-2xl"
+                class="text-sm text-gray-300 mb-4 max-w-xl line-clamp-2"
               >
                 {{ movie.overview }}
               </p>
 
               <!-- Action Buttons -->
-              <div class="flex space-x-4">
+              <div class="flex space-x-3">
                 <button
                   @click="playMovie"
-                  class="bg-white text-black px-8 py-3 rounded font-semibold hover:bg-gray-200 flex items-center"
+                  class="bg-white text-black px-6 py-2 rounded font-semibold hover:bg-gray-200 flex items-center text-sm"
                 >
                   <span class="mr-2">▶</span>
                   Play
@@ -79,7 +82,7 @@
                       ? 'bg-green-600 hover:bg-green-700'
                       : 'bg-gray-600/80 hover:bg-gray-600'
                   "
-                  class="text-white px-8 py-3 rounded font-semibold flex items-center"
+                  class="text-white px-6 py-2 rounded font-semibold flex items-center text-sm"
                 >
                   <span class="mr-2">{{ isWatched ? "✓" : "👁" }}</span>
                   {{ isWatched ? "Watched" : "Mark as Watched" }}
@@ -88,91 +91,136 @@
             </div>
           </div>
         </div>
-      </section>
 
-      <!-- Plot Section -->
-      <section v-if="movie.plot" class="container mx-auto px-4 py-8">
-        <h2 class="text-2xl font-bold mb-6">Plot</h2>
-        <div class="bg-gray-900/50 rounded-lg p-6">
-          <p
-            :class="[
-              'text-gray-300 leading-relaxed text-lg transition-all duration-300',
-              isPlotExpanded ? '' : 'line-clamp-3',
-            ]"
-          >
-            {{ movie.plot }}
-          </p>
-          <button
-            @click="togglePlot"
-            class="mt-4 text-blue-400 hover:text-blue-300 font-medium transition-colors"
-          >
-            {{ isPlotExpanded ? "Show Less" : "Show More" }}
-          </button>
-        </div>
-      </section>
-
-      <!-- Similar Movies Section -->
-      <section class="container mx-auto px-4 py-8 pb-4">
-        <h2 class="text-2xl font-bold mb-6">Similar Movies</h2>
-
-        <!-- Loading State for Similar Movies -->
+        <!-- Right: Content Column -->
         <div
-          v-if="similarMoviesLoading"
-          class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4"
+          class="relative flex flex-col overflow-hidden h-[calc(100vh-8rem)]"
         >
-          <MovieCardSkeleton v-for="i in 6" :key="i" />
-        </div>
-
-        <!-- Similar Movies Grid -->
-        <div
-          v-else-if="similarMovies && similarMovies.length > 0"
-          class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4"
-        >
-          <NuxtLink
-            v-for="similarMovie in similarMovies"
-            :key="similarMovie.id"
-            :to="`/movie/${similarMovie.id}`"
-            class="group cursor-pointer transition-transform hover:scale-105"
+          <!-- <div class="flex flex-col h-full"> -->
+          <!-- Plot Section - Fixed Height -->
+          <div
+            v-if="movie.plot"
+            class="h-48 bg-gray-900/50 border-l border-gray-700 flex flex-col flex-shrink-0"
           >
-            <div class="relative">
-              <img
-                v-if="similarMovie.poster_url"
-                :src="similarMovie.poster_url"
-                :alt="similarMovie.title"
-                class="w-full h-64 object-cover rounded"
-              />
-              <div
-                v-else
-                class="w-full h-64 bg-gray-800 rounded flex items-center justify-center"
+            <div class="p-6 pb-4 flex items-center justify-between">
+              <h2 class="text-xl font-bold text-white">Plot</h2>
+              <button
+                @click="showPlotPopup = true"
+                class="text-blue-400 hover:text-blue-300 font-medium transition-colors text-sm flex items-center"
               >
-                <span class="text-gray-400 text-sm">No Poster</span>
-              </div>
-              <div
-                class="absolute inset-0 bg-black/0 group-hover:bg-black/50 transition-colors rounded"
-              ></div>
+                <span class="mr-1">📖</span>
+                View Full Plot
+              </button>
             </div>
-            <div class="mt-2">
-              <h4 class="font-semibold text-sm truncate text-white">
-                {{ similarMovie.title }}
-              </h4>
-              <div class="flex items-center space-x-2 text-xs text-gray-500">
-                <span>{{
-                  similarMovie.release_date?.split("-")[0] || "N/A"
-                }}</span>
-                <span>•</span>
-                <span
-                  >⭐ {{ similarMovie.vote_average?.toFixed(1) || "N/A" }}</span
-                >
-              </div>
+            <div class="flex-1 px-6 pb-6 overflow-y-auto">
+              <p class="text-gray-300 leading-relaxed text-sm line-clamp-3">
+                {{ movie.plot }}
+              </p>
             </div>
-          </NuxtLink>
-        </div>
+          </div>
 
-        <!-- No Similar Movies State -->
-        <div v-else class="text-center text-gray-400 py-8">
-          <p>No similar movies found</p>
+          <!-- Similar Movies Section - Remaining Height After Plot -->
+          <div
+            class="flex-1 bg-gray-900/90 border-l border-gray-700 flex flex-col overflow-hidden min-h-0"
+          >
+            <div class="p-6 pb-4">
+              <h2 class="text-xl font-bold mb-4 text-white">Similar Movies</h2>
+            </div>
+            <div class="h-full px-6 pb-6 overflow-y-auto">
+              <!-- Loading State for Similar Movies -->
+              <div v-if="similarMoviesLoading" class="grid grid-cols-1 gap-4">
+                <div v-for="i in 4" :key="i" class="animate-pulse">
+                  <div class="flex space-x-3 p-3 bg-gray-800/50 rounded-lg">
+                    <div
+                      class="w-16 h-20 bg-gray-700 rounded flex-shrink-0"
+                    ></div>
+                    <div class="flex-1 space-y-2">
+                      <div class="h-4 bg-gray-700 rounded w-3/4"></div>
+                      <div class="h-3 bg-gray-700 rounded w-1/2"></div>
+                      <div class="h-3 bg-gray-700 rounded w-full"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Similar Movies List -->
+              <div
+                v-else-if="similarMovies && similarMovies.length > 0"
+                class="space-y-3"
+              >
+                <NuxtLink
+                  v-for="similarMovie in similarMovies"
+                  :key="similarMovie.id"
+                  :to="`/movie/${similarMovie.id}`"
+                  class="group block p-3 bg-gray-800/50 hover:bg-gray-800/70 rounded-lg transition-all duration-200"
+                >
+                  <div class="flex space-x-3">
+                    <!-- Movie Poster -->
+                    <div class="flex-shrink-0">
+                      <img
+                        v-if="similarMovie.poster_url"
+                        :src="similarMovie.poster_url"
+                        :alt="similarMovie.title"
+                        class="w-16 h-20 object-cover rounded-md"
+                      />
+                      <div
+                        v-else
+                        class="w-16 h-20 bg-gray-700 rounded-md flex items-center justify-center"
+                      >
+                        <span class="text-gray-500 text-xs">No Image</span>
+                      </div>
+                    </div>
+
+                    <!-- Movie Info -->
+                    <div class="flex-1 min-w-0">
+                      <!-- Title and Year -->
+                      <h3
+                        class="font-semibold text-white group-hover:text-blue-400 transition-colors mb-1 text-sm"
+                      >
+                        {{ similarMovie.title }}
+                        <span class="text-gray-400 font-normal">
+                          ({{
+                            similarMovie.release_date?.split("-")[0] || "N/A"
+                          }})
+                        </span>
+                      </h3>
+
+                      <!-- Rating and Genre -->
+                      <div
+                        class="flex items-center space-x-3 text-xs text-gray-400 mb-2"
+                      >
+                        <span class="flex items-center">
+                          ⭐
+                          {{ similarMovie.vote_average?.toFixed(1) || "N/A" }}
+                        </span>
+                        <span v-if="similarMovie.genre" class="truncate">
+                          {{ similarMovie.genre }}
+                        </span>
+                      </div>
+
+                      <!-- Similarity Description -->
+                      <p
+                        v-if="similarMovie.similarityDescription"
+                        class="text-xs text-gray-300 leading-relaxed line-clamp-2"
+                      >
+                        {{ similarMovie.similarityDescription }}
+                      </p>
+                      <p v-else class="text-xs text-gray-500 italic">
+                        Similar to {{ movie.title }} in genre and style.
+                      </p>
+                    </div>
+                  </div>
+                </NuxtLink>
+              </div>
+
+              <!-- No Similar Movies State -->
+              <div v-else class="text-center text-gray-400 py-4">
+                <p class="text-sm">No similar movies found</p>
+              </div>
+            </div>
+          </div>
         </div>
-      </section>
+      </div>
     </div>
 
     <!-- Error State -->
@@ -187,6 +235,33 @@
 
     <!-- Video Player -->
     <VideoPlayer :show="showVideoPlayer" @close="closeVideoPlayer" />
+
+    <!-- Plot Popup Modal -->
+    <div
+      v-if="showPlotPopup"
+      class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4"
+      @click="showPlotPopup = false"
+    >
+      <div
+        class="bg-gray-900 rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto"
+        @click.stop
+      >
+        <div class="p-6">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-2xl font-bold text-white">Plot</h2>
+            <button
+              @click="showPlotPopup = false"
+              class="text-gray-400 hover:text-white transition-colors"
+            >
+              <span class="text-2xl">×</span>
+            </button>
+          </div>
+          <p class="text-gray-300 leading-relaxed text-lg">
+            {{ movie.plot }}
+          </p>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -198,7 +273,7 @@ const similarMovies = ref(null);
 const similarMoviesLoading = ref(false);
 const isWatched = ref(false);
 const showVideoPlayer = ref(false);
-const isPlotExpanded = ref(false);
+const showPlotPopup = ref(false);
 
 // Load movie data
 const loadMovie = async () => {
