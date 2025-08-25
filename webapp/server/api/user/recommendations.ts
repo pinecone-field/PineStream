@@ -1,15 +1,10 @@
-const db = getDatabase();
+const userService = new UserService();
+const movieService = new MovieService();
 
 export default defineEventHandler(async (event) => {
   try {
-    // Get watched movie IDs and their chunk IDs in one query
-    const watchedStmt = db.prepare(`
-      SELECT wm.movie_id, cm.chunk_id
-      FROM user_watched_movies wm
-      LEFT JOIN chunk_mappings cm ON wm.movie_id = cm.movie_id
-      ORDER BY wm.watched_at DESC
-    `);
-    const watchedResults = watchedStmt.all() as any[];
+    // Get watched movie IDs and their chunk IDs using the new UserService
+    const watchedResults = userService.getWatchedMoviesChunks();
 
     if (watchedResults.length === 0) {
       // If no watched movies, return empty recommendations
@@ -101,14 +96,9 @@ export default defineEventHandler(async (event) => {
     let recommendations: any[] = [];
     if (recommendedMovieIds.size > 0) {
       const movieIdsArray = Array.from(recommendedMovieIds);
-      const placeholders = movieIdsArray.map(() => "?").join(",");
-      const recommendationsStmt = db.prepare(`
-        SELECT * FROM movies 
-        WHERE id IN (${placeholders})
-        ORDER BY vote_average DESC
-        LIMIT 10
-      `);
-      recommendations = recommendationsStmt.all(movieIdsArray) as any[];
+      recommendations = movieService.getMoviesByIds(movieIdsArray, {
+        limit: 10,
+      });
     }
 
     // If no recommendations found, return empty list

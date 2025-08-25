@@ -391,7 +391,9 @@ const clearAllWatched = async () => {
   }
 
   try {
-    await $fetch("/api/user/clear-watched");
+    await $fetch("/api/user/clear-watched", {
+      method: "POST",
+    });
     await loadWatchedMovies();
   } catch (error) {
     console.error("Error clearing watched movies:", error);

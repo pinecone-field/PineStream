@@ -1,43 +1,25 @@
 import { describe, it, expect, beforeAll } from "vitest";
-import {
-  RecursiveCharacterTextSplitter,
-  CharacterTextSplitter,
-  TokenTextSplitter,
-  MarkdownTextSplitter,
-} from "@langchain/textsplitters";
-import { getDatabase } from "~/server/utils/database";
+import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
+import { CharacterTextSplitter } from "@langchain/textsplitters";
+import { TokenTextSplitter } from "@langchain/textsplitters";
+import { MarkdownTextSplitter } from "@langchain/textsplitters";
 
 describe("Text Splitter Comparison for Movie Plots", () => {
-  let db: any;
+  let movieService: MovieService;
   let sampleMovies: any[];
 
-  beforeAll(async () => {
+  beforeAll(() => {
     // Get database connection
-    db = getDatabase();
+    movieService = new MovieService();
 
-    // Get total count of movies with plots
-    const totalMoviesStmt = db.prepare(`
-      SELECT COUNT(*) as count 
-      FROM movies 
-      WHERE plot IS NOT NULL AND plot != ''
-    `);
-    const totalMovies = totalMoviesStmt.get() as { count: number };
+    // Get total count of movies with plots using the new MovieService
+    const totalMovies = movieService.getMoviesWithPlotsCount();
 
     // Sample 10% of movies or max 20, whichever is smaller
-    const sampleSize = Math.min(
-      20,
-      Math.max(5, Math.floor(totalMovies.count * 0.1))
-    );
+    const sampleSize = Math.min(20, Math.max(5, Math.floor(totalMovies * 0.1)));
 
-    // Get a representative sample of movies
-    const randomMoviesStmt = db.prepare(`
-      SELECT id, title, plot, overview, genre, release_date 
-      FROM movies 
-      WHERE plot IS NOT NULL AND plot != '' 
-      ORDER BY RANDOM() 
-      LIMIT ?
-    `);
-    sampleMovies = randomMoviesStmt.all(sampleSize);
+    // Get a representative sample of movies using the new MovieService
+    sampleMovies = movieService.getRandomMoviesWithPlots(sampleSize);
 
     if (sampleMovies.length === 0) {
       throw new Error("No movies with plots found in database for testing");

@@ -1,26 +1,15 @@
-const db = getDatabase();
+const movieService = new MovieService();
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event);
   const count = parseInt(query.count as string) || 10;
 
-  // Limit count between 1 and 500
-  const limitedCount = Math.max(1, Math.min(500, count));
-
   try {
-    // Get random movies
-    const randomMoviesStmt = db.prepare(`
-      SELECT * FROM movies 
-      ORDER BY RANDOM() 
-      LIMIT ?
-    `);
-    const randomMovies = randomMoviesStmt.all(limitedCount) as any[];
-
-    // Add watched status to movies
-    const moviesWithWatchedStatus = addWatchedStatusToMovies(randomMovies, db);
+    // Get random movies using the new MovieService
+    const randomMovies = movieService.getRandomMovies(count);
 
     return {
-      movies: moviesWithWatchedStatus.map((movie) => ({
+      movies: randomMovies.map((movie) => ({
         id: movie.id,
         title: movie.title,
         poster_url: movie.poster_url,
@@ -29,7 +18,7 @@ export default defineEventHandler(async (event) => {
         genre: movie.genre,
         isWatched: movie.isWatched,
       })),
-      count: moviesWithWatchedStatus.length,
+      count: randomMovies.length,
     };
   } catch (error) {
     console.error("Error fetching random movies:", error);

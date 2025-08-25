@@ -1,4 +1,4 @@
-const db = getDatabase();
+const movieService = new MovieService();
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, "id");
@@ -11,9 +11,8 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    // STEP 1: Fetch the current movie from database
-    const stmt = db.prepare("SELECT * FROM movies WHERE id = ?");
-    const currentMovie = stmt.get(id) as any;
+    // STEP 1: Fetch the current movie from database using MovieService
+    const currentMovie = movieService.getMovieById(id);
 
     if (!currentMovie) {
       throw createError({
@@ -84,9 +83,11 @@ export default defineEventHandler(async (event) => {
       return buildResponse(currentMovie, []);
     }
 
-    const placeholders = movieIds.map(() => "?").join(",");
-    const query = `SELECT * FROM movies WHERE id IN (${placeholders})`;
-    const similarMovies = db.prepare(query).all(...movieIds);
+    // Fetch full movie data using the new MovieService
+    const similarMovies = movieService.getMoviesByIds(
+      movieIds.map((id) => parseInt(id)),
+      { includeWatched: true }
+    );
 
     // Sort by similarity score (higher scores = more similar)
     similarMovies.sort(

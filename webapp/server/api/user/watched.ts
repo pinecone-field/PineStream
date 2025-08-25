@@ -1,4 +1,5 @@
-const db = getDatabase();
+const userService = new UserService();
+const movieService = new MovieService();
 
 export default defineEventHandler(async (event) => {
   const method = event.method;
@@ -6,14 +7,8 @@ export default defineEventHandler(async (event) => {
   try {
     switch (method) {
       case "GET":
-        // Get all watched movies
-        const watchedStmt = db.prepare(`
-          SELECT m.*, wm.watched_at 
-          FROM user_watched_movies wm
-          JOIN movies m ON wm.movie_id = m.id
-          ORDER BY wm.watched_at DESC
-        `);
-        const watchedMovies = watchedStmt.all() as any[];
+        // Get all watched movies using the new UserService
+        const watchedMovies = userService.getWatchedMovies();
 
         return {
           watchedMovies: watchedMovies.map((movie) => ({
@@ -39,9 +34,8 @@ export default defineEventHandler(async (event) => {
           });
         }
 
-        // Check if movie exists
-        const movieStmt = db.prepare("SELECT id FROM movies WHERE id = ?");
-        const movie = movieStmt.get(movieId);
+        // Check if movie exists using the new MovieService
+        const movie = movieService.getMovieById(movieId);
 
         if (!movie) {
           throw createError({
@@ -50,21 +44,13 @@ export default defineEventHandler(async (event) => {
           });
         }
 
-        // Check if already watched
-        const existingStmt = db.prepare(
-          "SELECT id FROM user_watched_movies WHERE movie_id = ?"
-        );
-        const existing = existingStmt.get(movieId);
-
-        if (existing) {
+        // Check if already watched using the new UserService
+        if (userService.isMovieWatched(movieId)) {
           return { message: "Movie already in watched list" };
         }
 
-        // Add to watched list
-        const insertStmt = db.prepare(
-          "INSERT INTO user_watched_movies (movie_id) VALUES (?)"
-        );
-        insertStmt.run(movieId);
+        // Add to watched list using the new UserService
+        userService.addMovieToWatched(movieId);
 
         return { message: "Movie added to watched list" };
 
@@ -80,12 +66,10 @@ export default defineEventHandler(async (event) => {
           });
         }
 
-        const deleteStmt = db.prepare(
-          "DELETE FROM user_watched_movies WHERE movie_id = ?"
-        );
-        const result = deleteStmt.run(deleteMovieId);
+        // Remove from watched list using the new UserService
+        const changes = userService.removeMovieFromWatched(deleteMovieId);
 
-        if (result.changes === 0) {
+        if (changes === 0) {
           throw createError({
             statusCode: 404,
             statusMessage: "Movie not found in watched list",

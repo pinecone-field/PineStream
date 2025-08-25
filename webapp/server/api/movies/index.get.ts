@@ -2,26 +2,12 @@ const movieService = new MovieService();
 
 export default defineEventHandler(async (event) => {
   const query = getQuery(event);
-  const searchTerm = query.q as string;
   const page = parseInt(query.page as string) || 1;
   const limit = parseInt(query.limit as string) || 20;
 
-  if (!searchTerm) {
-    return {
-      movies: [],
-      pagination: {
-        page: 1,
-        limit: 20,
-        total: 0,
-        totalPages: 0,
-      },
-    };
-  }
-
   try {
-    // Search movies using the new MovieService
-    const { movies, total, totalPages } = movieService.searchMovies(
-      searchTerm,
+    // Get movies with pagination using the new MovieService
+    const { movies, total, totalPages } = movieService.getMoviesWithPagination(
       page,
       limit
     );
@@ -36,7 +22,7 @@ export default defineEventHandler(async (event) => {
       },
     };
   } catch (error) {
-    console.error("Error searching movies:", error);
+    console.error("Error fetching movies:", error);
     throw createError({
       statusCode: 500,
       statusMessage: "Internal Server Error",

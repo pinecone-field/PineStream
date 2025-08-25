@@ -1,4 +1,5 @@
-const db = getDatabase();
+const movieService = new MovieService();
+const userService = new UserService();
 
 async function getEmbeddingsCounts(): Promise<{
   dense: number;
@@ -32,23 +33,18 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    // Get database stats (these are fast local operations)
-    const totalMoviesStmt = db.prepare("SELECT COUNT(*) as count FROM movies");
-    const watchedMoviesStmt = db.prepare(
-      "SELECT COUNT(*) as count FROM user_watched_movies"
-    );
-
+    // Get database stats using the new service classes
     const [totalMovies, watchedMovies] = await Promise.all([
-      Promise.resolve(totalMoviesStmt.get() as { count: number }),
-      Promise.resolve(watchedMoviesStmt.get() as { count: number }),
+      Promise.resolve(movieService.getMovieCount()),
+      Promise.resolve(userService.getWatchedMovieCount()),
     ]);
 
     // Get embedding counts from Pinecone (optimized with parallel calls)
     const embeddings = await getEmbeddingsCounts();
 
     return {
-      totalMovies: totalMovies.count,
-      watchedMovies: watchedMovies.count,
+      totalMovies,
+      watchedMovies,
       denseEmbeddings: embeddings.dense,
       sparseEmbeddings: embeddings.sparse,
     };

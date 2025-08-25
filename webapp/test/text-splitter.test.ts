@@ -1,29 +1,14 @@
 import { describe, it, expect, beforeAll } from "vitest";
-import {
-  splitText,
-  DEFAULT_SPLITTER_CONFIG,
-} from "~/server/utils/text-splitter";
-import { RecursiveCharacterTextSplitter } from "@langchain/textsplitters";
-import { getDatabase } from "~/server/utils/database";
 
 describe("RecursiveCharacterTextSplitter", () => {
-  let db: any;
+  let movieService: MovieService;
   let sampleMovie: any;
 
-  beforeAll(async () => {
-    // Get database connection
-    db = getDatabase();
+  beforeAll(() => {
+    movieService = new MovieService();
 
-    // Get a random movie with a plot for testing
-    const randomMovieStmt = db.prepare(`
-      SELECT id, title, plot, overview 
-      FROM movies 
-      WHERE plot IS NOT NULL AND plot != '' 
-      ORDER BY RANDOM() 
-      LIMIT 1
-    `);
-
-    sampleMovie = randomMovieStmt.get();
+    // Get a random movie with a plot for testing using the new MovieService
+    sampleMovie = movieService.getRandomMovieWithPlot();
 
     if (!sampleMovie) {
       throw new Error("No movies with plots found in database for testing");

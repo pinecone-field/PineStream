@@ -1,4 +1,4 @@
-const db = getDatabase();
+const movieService = new MovieService();
 
 // Interface for extracted filter criteria
 interface SearchFilters {
@@ -207,14 +207,7 @@ export default defineEventHandler(async (event) => {
     }
 
     const movieIdsArray = Array.from(uniqueMovieIds);
-    const placeholders = movieIdsArray.map(() => "?").join(",");
-    const query = `SELECT id, title, plot, overview FROM movies WHERE id IN (${placeholders})`;
-    const moviePlots = db.prepare(query).all(...movieIdsArray) as Array<{
-      id: number;
-      title: string;
-      plot: string | null;
-      overview: string | null;
-    }>;
+    const moviePlots = movieService.getMoviesByIds(movieIdsArray);
 
     // STEP 6: Prepare movie plots for reranking
     const allDescriptions = moviePlots.map((movie) => {
@@ -249,9 +242,11 @@ export default defineEventHandler(async (event) => {
       // Get movie IDs from reranked results
       const movieIds = Array.from(movieScoreMap.keys());
 
-      const placeholders = movieIds.map(() => "?").join(",");
-      const query = `SELECT * FROM movies WHERE id IN (${placeholders})`;
-      movies = db.prepare(query).all(...movieIds);
+      // Fetch full movie data using the new MovieService
+      movies = movieService.getMoviesByIds(
+        movieIds.map((id) => parseInt(id)),
+        { includeWatched: true }
+      );
 
       // Add similarity scores to each movie
       movies = movies.map((movie) => {
@@ -264,9 +259,6 @@ export default defineEventHandler(async (event) => {
           similarityScore: score,
         };
       });
-
-      // Add watched status to movies
-      movies = addWatchedStatusToMovies(movies, db);
 
       // Limit to the requested number of results
       movies = movies

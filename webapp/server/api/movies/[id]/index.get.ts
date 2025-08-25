@@ -1,4 +1,4 @@
-const db = getDatabase();
+const movieService = new MovieService();
 
 export default defineEventHandler(async (event) => {
   const id = getRouterParam(event, "id");
@@ -11,8 +11,8 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    const stmt = db.prepare("SELECT * FROM movies WHERE id = ?");
-    const movie = stmt.get(id) as any;
+    // Get movie by ID using the new MovieService
+    const movie = movieService.getMovieById(id);
 
     if (!movie) {
       throw createError({
@@ -21,10 +21,7 @@ export default defineEventHandler(async (event) => {
       });
     }
 
-    // Add watched status to movie
-    const movieWithWatchedStatus = addWatchedStatusToMovie(movie, db);
-
-    return movieWithWatchedStatus;
+    return movie;
   } catch (error) {
     console.error("Error fetching movie:", error);
     throw createError({

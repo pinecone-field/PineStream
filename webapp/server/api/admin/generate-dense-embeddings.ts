@@ -1,4 +1,4 @@
-const db = getDatabase();
+const adminService = new AdminService();
 
 // Global progress tracking
 (global as any).denseProgress = {
@@ -14,6 +14,32 @@ function dateToTimestamp(dateString: string): number | undefined {
   if (!dateString) return undefined;
   const date = new Date(dateString);
   return isNaN(date.getTime()) ? undefined : date.getTime();
+}
+
+// Helper function to create chunk mapping from chunk record
+function createChunkMapping(record: ChunkRecord): ChunkMapping {
+  return {
+    id: record.id,
+    movieId: record.movieId,
+    chunkIndex: record.chunkIndex,
+    totalChunks: record.totalChunks,
+    source: record.source,
+  };
+}
+
+// Helper function to convert ChunkRecord to Pinecone format
+function toPineconeFormat(record: ChunkRecord): any {
+  return {
+    id: record.id,
+    text: record.text,
+    title: record.title,
+    genre: record.genre,
+    movie_id: record.movieId,
+    chunk_index: record.chunkIndex,
+    total_chunks: record.totalChunks,
+    source: record.source,
+    ...(record.releaseDate && { release_date: record.releaseDate }),
+  };
 }
 
 export default defineEventHandler(async (event) => {
@@ -35,30 +61,11 @@ export default defineEventHandler(async (event) => {
   try {
     const startTime = Date.now();
 
-    // Create chunk_mappings table if it doesn't exist
-    db.prepare(
-      `
-      CREATE TABLE IF NOT EXISTS chunk_mappings (
-        chunk_id TEXT PRIMARY KEY,
-        movie_id INTEGER NOT NULL,
-        chunk_index INTEGER NOT NULL,
-        total_chunks INTEGER NOT NULL,
-        source TEXT NOT NULL,
-        FOREIGN KEY (movie_id) REFERENCES movies(id)
-      )
-    `
-    ).run();
+    // Prepare chunk_mappings table (create if needed, clear existing) using the new AdminService
+    adminService.prepareChunkMappingsTable();
 
-    // Clear existing chunk mappings
-    db.prepare("DELETE FROM chunk_mappings").run();
-
-    // Get all movies from database
-    const moviesStmt = db.prepare(`
-      SELECT id, title, overview, plot, genre, release_date, vote_average 
-      FROM movies 
-      ORDER BY id
-    `);
-    const movies = moviesStmt.all() as any[];
+    // Get all movies from database using the new AdminService
+    const movies: Movie[] = adminService.getAllMovies();
 
     // Process movies and create chunks with chunk-based batching
     const maxChunksPerBatch = parseInt(process.env.DENSE_BATCH_SIZE || "50");
@@ -81,7 +88,7 @@ export default defineEventHandler(async (event) => {
     const pc = await getPineconeClient();
     const index = pc.index(PINECONE_INDEXES.MOVIES_DENSE);
 
-    let currentBatch: any[] = [];
+    let currentBatch: ChunkRecord[] = [];
     let batchCount = 0;
     let pendingBatches: Promise<void>[] = [];
 
@@ -110,7 +117,7 @@ export default defineEventHandler(async (event) => {
           : [];
 
         // Convert release_date string to numeric timestamp
-        const releaseTimestamp = dateToTimestamp(movie.release_date);
+        const releaseTimestamp = dateToTimestamp(movie.release_date ?? "");
 
         // Process plot text if available
         if (plotText.trim()) {
@@ -125,25 +132,19 @@ export default defineEventHandler(async (event) => {
             const chunk = plotChunks[chunkIndex];
             const chunkId = `${movie.id}_plot_chunk_${chunkIndex}`;
 
-            // Store chunk mapping in database
-            db.prepare(
-              `
-              INSERT INTO chunk_mappings (chunk_id, movie_id, chunk_index, total_chunks, source)
-              VALUES (?, ?, ?, ?, ?)
-            `
-            ).run(chunkId, movie.id, chunkIndex, plotChunks.length, "plot");
-
-            currentBatch.push({
+            const chunkRecord: ChunkRecord = {
               id: chunkId,
               text: chunk,
-              title: movie.title,
+              title: movie.title || "Unknown Title",
               genre: genreArray,
-              movie_id: movie.id,
-              chunk_index: chunkIndex,
-              total_chunks: plotChunks.length,
+              movieId: movie.id,
+              chunkIndex: chunkIndex,
+              totalChunks: plotChunks.length,
               source: "plot",
-              ...(releaseTimestamp && { release_date: releaseTimestamp }),
-            });
+              ...(releaseTimestamp && { releaseDate: releaseTimestamp }),
+            };
+
+            currentBatch.push(chunkRecord);
 
             // If batch is full, start processing it in parallel
             if (currentBatch.length >= maxChunksPerBatch) {
@@ -153,8 +154,16 @@ export default defineEventHandler(async (event) => {
               // Create a promise for this batch
               const batchPromise = (async () => {
                 try {
-                  await index.upsertRecords(batchToProcess);
+                  // Convert to Pinecone format for upsert
+                  const pineconeBatch = batchToProcess.map(toPineconeFormat);
+                  await index.upsertRecords(pineconeBatch);
                   totalChunks += batchToProcess.length;
+
+                  // Only store chunk mappings after successful Pinecone upsert
+                  const chunkMappings: ChunkMapping[] =
+                    batchToProcess.map(createChunkMapping);
+                  adminService.insertChunkMappingsBatch(chunkMappings);
+
                   // Add delay after successful batch to respect rate limits
                   await delay(1000); // 1 second delay between batches
                 } catch (error) {
@@ -201,31 +210,19 @@ export default defineEventHandler(async (event) => {
             const chunk = overviewChunks[chunkIndex];
             const chunkId = `${movie.id}_overview_chunk_${chunkIndex}`;
 
-            // Store chunk mapping in database
-            db.prepare(
-              `
-              INSERT INTO chunk_mappings (chunk_id, movie_id, chunk_index, total_chunks, source)
-              VALUES (?, ?, ?, ?, ?)
-            `
-            ).run(
-              chunkId,
-              movie.id,
-              chunkIndex,
-              overviewChunks.length,
-              "overview"
-            );
-
-            currentBatch.push({
+            const chunkRecord: ChunkRecord = {
               id: chunkId,
               text: chunk,
-              title: movie.title,
+              title: movie.title || "Unknown Title",
               genre: genreArray,
-              movie_id: movie.id,
-              chunk_index: chunkIndex,
-              total_chunks: overviewChunks.length,
+              movieId: movie.id,
+              chunkIndex: chunkIndex,
+              totalChunks: overviewChunks.length,
               source: "overview",
-              ...(releaseTimestamp && { release_date: releaseTimestamp }),
-            });
+              ...(releaseTimestamp && { releaseDate: releaseTimestamp }),
+            };
+
+            currentBatch.push(chunkRecord);
 
             // If batch is full, start processing it in parallel
             if (currentBatch.length >= maxChunksPerBatch) {
@@ -235,8 +232,16 @@ export default defineEventHandler(async (event) => {
               // Create a promise for this batch
               const batchPromise = (async () => {
                 try {
-                  await index.upsertRecords(batchToProcess);
+                  // Convert to Pinecone format for upsert
+                  const pineconeBatch = batchToProcess.map(toPineconeFormat);
+                  await index.upsertRecords(pineconeBatch);
                   totalChunks += batchToProcess.length;
+
+                  // Only store chunk mappings after successful Pinecone upsert
+                  const chunkMappings: ChunkMapping[] =
+                    batchToProcess.map(createChunkMapping);
+                  adminService.insertChunkMappingsBatch(chunkMappings);
+
                   // Add delay after successful batch to respect rate limits
                   await delay(1000); // 1 second delay between batches
                 } catch (error) {
@@ -288,52 +293,54 @@ export default defineEventHandler(async (event) => {
 
       const batchPromise = (async () => {
         try {
-          await index.upsertRecords(batchToProcess);
+          // Convert to Pinecone format for upsert
+          const pineconeBatch = batchToProcess.map(toPineconeFormat);
+          await index.upsertRecords(pineconeBatch);
           totalChunks += batchToProcess.length;
+
+          // Only store chunk mappings after successful Pinecone upsert
+          const chunkMappings: ChunkMapping[] =
+            batchToProcess.map(createChunkMapping);
+          adminService.insertChunkMappingsBatch(chunkMappings);
         } catch (error) {
-          console.error(
-            `Error processing final batch ${currentBatchCount}:`,
-            error
-          );
+          console.error(`Error processing batch ${currentBatchCount}:`, error);
+          // If we hit rate limits, wait longer
+          if (
+            error &&
+            typeof error === "object" &&
+            "status" in error &&
+            error.status === 429
+          ) {
+            await delay(5000);
+          }
         }
       })();
 
       pendingBatches.push(batchPromise);
-      batchCount++;
+      // If we have too many pending batches, wait for one to complete
+      if (pendingBatches.length >= maxConcurrentBatches) {
+        await Promise.race(pendingBatches);
+        // Clean up by removing the first promise (simplified approach)
+        pendingBatches.shift();
+      }
     }
 
-    // Wait for all remaining batches to complete
-    if (pendingBatches.length > 0) {
-      await Promise.all(pendingBatches);
-    }
+    // Wait for all pending batches to complete
+    await Promise.all(pendingBatches);
 
-    // Mark as completed
-    const result = {
-      message: `Dense embeddings generated successfully! Processed ${processedCount} movies with ${totalChunks} total chunks`,
-      status: "completed",
-      timestamp: new Date().toISOString(),
+    const endTime = Date.now();
+    const duration = (endTime - startTime) / 1000; // seconds
+
+    return {
+      status: "success",
+      message: `Dense embedding generation completed. Processed ${totalChunks} chunks in ${duration} seconds.`,
+      totalChunks: totalChunks,
     };
-
-    (global as any).denseProgress = {
-      isRunning: false,
-      processed: processedCount,
-      total: movies.length,
-      startTime,
-      message: result.message,
-    };
-
-    return result;
   } catch (error) {
     console.error("Error generating dense embeddings:", error);
-
-    // Mark as failed
-    (global as any).denseProgress.isRunning = false;
-    (global as any).denseProgress.message =
-      "Failed to generate dense embeddings";
-
     throw createError({
       statusCode: 500,
-      statusMessage: "Internal Server Error",
+      statusMessage: "Failed to generate dense embeddings",
     });
   }
 });
