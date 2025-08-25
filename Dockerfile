@@ -36,11 +36,15 @@ FROM node:18-slim AS runtime
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install only essential runtime dependencies including curl
+# Install runtime dependencies including build tools for better-sqlite3
 RUN apt-get update && apt-get install -y \
     curl \
     git \
+    python3 \
+    make \
+    g++ \
     sqlite3 \
+    libsqlite3-dev \
     ca-certificates \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean \
