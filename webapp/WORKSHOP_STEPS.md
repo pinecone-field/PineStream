@@ -1,3 +1,181 @@
+## Semantic hybrid search
+
+### Vector search
+
+```js
+  // Build the search options for Pinecone
+  const searchOptions: any = {
+    query: {
+      inputs: { text: searchText },
+      topK: limit,
+    },
+  };
+
+  // Add the metadata filter if it exists
+  if (Object.keys(metadataFilter).length > 0) {
+    searchOptions.filter = metadataFilter;
+  }
+
+  // Perform the vector search
+  const pc = await getPineconeClient();
+  const index = pc.index(indexName);
+  const results = await index.searchRecords(searchOptions);
+
+  // Extract movie IDs from the results
+  results.result.hits.forEach((hit) => {
+    const movieId = (hit as any).fields?.movie_id;
+    if (movieId) {
+      movieIds.add(movieId);
+    }
+  });
+```
+
+### Reranking
+
+```js
+// Fetch movie plots from database for reranking
+const movieIdsArray = Array.from(movieIds);
+const movies = movieService.getMoviesByIds(movieIdsArray);
+
+// Prepare the texts to rerank
+const texts = movies.map((movie) => {
+  // Use plot if available, otherwise fallback to overview
+  const text = movie.plot || movie.overview || movie.title || "";
+  return {
+    id: String(movie.id), // Convert to string for reranker
+    text: text,
+  };
+});
+
+// Rerank movies using Pinecone reranker
+const pc = await getPineconeClient();
+const rerankResults = await pc.inference.rerank(
+  "bge-reranker-v2-m3", // which model to use
+  searchText, // what user asked
+  texts, // the objects to rerank
+  {
+    topN: limit,
+    rankFields: ["text"], // the field to rank by
+    returnDocuments: true, // whether to return the documents
+  }
+);
+
+// The reranker returns results sorted by score (highest first)
+// We can directly map the results to our movies and add scores
+highestRankedMovies = rerankResults.data
+  .map((doc) => {
+    const movieId = doc.document?.id;
+    const movie = movies.find((m) => String(m.id) === movieId);
+
+    if (movie) {
+      return {
+        ...movie,
+        similarityScore: doc.score || 0,
+      };
+    }
+    return null;
+  })
+  .filter(Boolean); // Remove any null entries
+```
+
+## GAR (Generation Augmented Retrieval)
+
+### Generation phase: ask the LLM to get insides about the query
+
+````js
+  // prepare the system prompt for the LLM
+  const systemPrompt = `You are a movie query analyzer.
+Extract filters and optimized queries. Return ONLY JSON:
+
+{
+  "genres": ["genre1","genre2"] or null,
+  "dateRange": {"start": "YYYY-MM-DD" or null, "end": "YYYY-MM-DD" or null},
+  "denseQuery": "semantic reformulation for vector search",
+  "sparseQuery": "keyword-style reformulation for lexical search",
+  "userMessage": "Based on your request, we filtered movies by ...",
+  "hasFilters": true or false
+}
+
+Rules:
+- Genres: only from → action, comedy, drama, horror, sci-fi, romance, thriller, documentary, animation, fantasy, adventure, crime, mystery, western, musical, war, family, history, biography, sport. Lowercase. Null if none.
+
+- Dates: Extract ONLY if the user explicitly mentions a time period (decade, year, range, "before/after", "recent").
+  • If no explicit time reference is present, set dateRange = {"start": null, "end": null}.
+  • Examples:
+    - "90s" → 1990-1999
+    - "2020" → 2020-2020
+    - "1995 to 2000" → 1995-2000
+    - "before 2000" → 1900-1999
+    - "recent" → 2020-2024
+
+- Dense query: semantic, natural, theme/plot-based.
+- Sparse query: keywords, entities, compact. Drop stopwords.
+- If query = only filters → denseQuery = "movies", sparseQuery = "film movie".
+
+- userMessage format:
+  • Genres + dates → "Based on your request, we filtered movies by \`{genres list}\` genres released in the \`YYYY - YYYY\` time period."
+  • Only genres → "Based on your request, we filtered movies by \`{genres list}\` genres."
+  • Only dates → "Based on your request, we filtered movies released in the \`YYYY - YYYY\` time period."
+  • No filters → null.
+
+Example output with both genres & dates:
+{
+  "genres": ["drama","sci-fi","thriller"],
+  "dateRange": {"start":"1990-01-01","end":"2004-12-31"},
+  "denseQuery": "dramatic and suspenseful science fiction thrillers",
+  "sparseQuery": "drama sci-fi thriller movie",
+  "userMessage": "Based on your request, we filtered movies by \`drama\`, \`sci-fi\`, and \`thriller\` genres released in the \`1990 - 2004\` time period.",
+  "hasFilters": true
+}
+
+Example output with only genre:
+{
+  "genres": ["sci-fi"],
+  "dateRange": {"start": null, "end": null},
+  "denseQuery": "science fiction movies about space exploration",
+  "sparseQuery": "sci-fi space exploration movie",
+  "userMessage": "Based on your request, we filtered movies by \`sci-fi\` genres.",
+  "hasFilters": true
+}
+`;
+
+  try {
+    // Call the LLM via Groq API to get the insight
+    const groq = await getGroqClient();
+    const completion = await groq.chat.completions.create({
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: searchQuery },
+      ],
+      model: GROQ_MODELS.LLAMA3_1_8B_INSTANT, // which LLM to use
+      temperature: 0.1, // Low temperature for consistent parsing
+      max_tokens: 300, // max tokens to generate
+    });
+
+    // get the response from the LLM
+    const response = completion.choices[0]?.message?.content || "{}";
+
+    // Extract JSON from the response (in case it includes explanatory text)
+    const jsonString = extractJSONFromResponse(response);
+    const parsedInsight = JSON.parse(jsonString) as SearchInsight;
+
+
+    // construct the insight object
+    insight = {
+      genres: parsedInsight.genres || undefined,
+      dateRange: parsedInsight.dateRange || undefined,
+      hasFilters: parsedInsight.hasFilters || false,
+      userMessage:
+        parsedInsight.userMessage ||
+        "We found movies matching your description.",
+      denseQuery: parsedInsight.denseQuery || searchQuery,
+      sparseQuery: parsedInsight.sparseQuery || searchQuery,
+    };
+  } catch (error) {
+    console.error("Error analyzing search query:", error);
+  }```
+
+
 ## RAG
 
 ### Retrieval phase: find similar movies
@@ -20,7 +198,7 @@ const currentGenres = currentMovie.genre
       .map((g: string) => g.trim().toLowerCase())
       .filter((g: string) => g.length > 0)
   : [];
-```
+````
 
 - STEP 2: Search the sparse index for similar chunks
 
