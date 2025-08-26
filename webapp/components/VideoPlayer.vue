@@ -26,31 +26,29 @@
       </button>
 
       <!-- Video player -->
-      <div class="w-full h-full flex items-center justify-center">
-        <video
-          ref="videoPlayer"
-          class="w-full h-full object-contain"
-          controls
-          preload="metadata"
-          playsinline
-          webkit-playsinline
-          x5-playsinline
-          x5-video-player-type="h5"
-          x5-video-player-fullscreen="true"
-          @click.stop
-          @error="handleVideoError"
-          @loadeddata="handleVideoLoaded"
-          @canplay="handleCanPlay"
-          @waiting="handleWaiting"
-          @playing="handlePlaying"
-          @pause="handlePause"
-          @ended="handleEnded"
-        >
-          <source src="/movie.mov" type="video/quicktime" />
-          <source src="/movie.mov" type="video/mp4" />
-          Your browser does not support the video tag.
-        </video>
-      </div>
+      <video
+        ref="videoPlayer"
+        class="w-full h-full object-contain"
+        controls
+        preload="metadata"
+        playsinline
+        webkit-playsinline
+        x5-playsinline
+        x5-video-player-type="h5"
+        x5-video-player-fullscreen="true"
+        @click.stop
+        @error="handleVideoError"
+        @loadeddata="handleVideoLoaded"
+        @canplay="handleCanPlay"
+        @waiting="handleWaiting"
+        @playing="handlePlaying"
+        @pause="handlePause"
+        @ended="handleEnded"
+      >
+        <source src="/movie.mov" type="video/quicktime" />
+        <source src="/movie.mov" type="video/mp4" />
+        Your browser does not support the video tag.
+      </video>
 
       <!-- Loading state -->
       <div
@@ -159,16 +157,39 @@ onMounted(async () => {
   }
 });
 
+// Auto-play video when player opens
+const autoPlayVideo = async () => {
+  if (!videoPlayer.value) return;
+
+  try {
+    // Wait for the video to be ready
+    await nextTick();
+
+    // Try to play the video automatically
+    await videoPlayer.value.play();
+    console.log("Video auto-played successfully");
+  } catch (error) {
+    console.log("Auto-play failed, user will need to click play:", error);
+    // Don't show error - just let user click play manually
+  }
+};
+
 // Handle video loading
 const handleVideoLoaded = () => {
   console.log("Video data loaded successfully");
   isLoading.value = false;
+
+  // Try to auto-play when video is loaded
+  autoPlayVideo();
 };
 
 // Handle when video can start playing
 const handleCanPlay = () => {
   console.log("Video can start playing");
   isLoading.value = false;
+
+  // Try to auto-play when video is ready
+  autoPlayVideo();
 };
 
 // Handle when video is waiting for data
@@ -263,13 +284,20 @@ const close = () => {
   emit("close");
 };
 
-// Watch for show changes to reset state
+// Watch for show changes to auto-play when player opens
 watch(
   () => props.show,
   (newShow) => {
     if (newShow) {
       isLoading.value = true;
       videoError.value = false;
+
+      // Try to auto-play after a short delay to ensure video element is ready
+      nextTick(() => {
+        setTimeout(() => {
+          autoPlayVideo();
+        }, 100);
+      });
     }
   }
 );
