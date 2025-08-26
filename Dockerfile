@@ -1,7 +1,8 @@
 # Multi-stage build to reduce final image size
+# Build for AMD64 (x86_64) to ensure compatibility with Instruqt
 
 # Stage 1: Build dependencies
-FROM ubuntu:22.04 AS builder
+FROM --platform=linux/amd64 ubuntu:22.04 AS builder
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -10,6 +11,7 @@ RUN apt-get update && apt-get install -y \
     curl \
     git \
     python3 \
+    python3-pip \
     make \
     g++ \
     sqlite3 \
@@ -32,11 +34,11 @@ RUN git clone https://github.com/pinecone-field/PineStream.git /app
 RUN cd /app/webapp && pnpm install --frozen-lockfile
 
 # Stage 2: Runtime image - use smaller base
-FROM node:18-slim AS runtime
+FROM --platform=linux/amd64 node:18-slim AS runtime
 
 ENV DEBIAN_FRONTEND=noninteractive
 
-# Install runtime dependencies including build tools for better-sqlite3
+# Install only essential runtime dependencies
 RUN apt-get update && apt-get install -y \
     curl \
     git \
@@ -50,10 +52,13 @@ RUN apt-get update && apt-get install -y \
     && apt-get clean \
     && rm -rf /tmp/* /var/tmp/*
 
-# Install pnpm globally (needed for PineStream)
+# Verify python3 is available
+RUN python3 --version && which python3
+
+# Install pnpm globally
 RUN npm install -g pnpm@10.14.0
 
-# Install code-server with curl now available
+# Install code-server
 RUN curl -fsSL https://code-server.dev/install.sh | sh
 
 # Create code-server user and directory
@@ -61,17 +66,18 @@ RUN useradd -m -s /bin/bash coder \
     && mkdir -p /home/coder/workspace \
     && chown -R coder:coder /home/coder
 
+# Create container scripts directory
+RUN mkdir -p /container-scripts
+
 # Create code-server directories with proper permissions
 RUN mkdir -p /home/coder/.local/share/code-server/extensions \
     && mkdir -p /home/coder/.local/share/code-server/user-data \
     && chown -R coder:coder /home/coder/.local
 
-# Create container scripts directory
-RUN mkdir -p /container-scripts
-
-# Copy only essential project files (no pnpm store)
-COPY --from=builder /app/webapp/package.json /app/webapp/package.json
-COPY --from=builder /app/webapp/pnpm-lock.yaml /app/webapp/pnpm-lock.yaml
+# Copy pre-installed dependencies from builder stage
+COPY --from=builder /app/webapp/package.json /container-scripts/deps/package.json
+COPY --from=builder /app/webapp/pnpm-lock.yaml /container-scripts/deps/pnpm-lock.yaml
+COPY --from=builder /root/.local/share/pnpm /root/.local/share/pnpm
 
 # Expose ports for Nuxt and code-server
 EXPOSE 3000 8080
@@ -84,7 +90,7 @@ ENV GITHUB_REPO="https://github.com/pinecone-field/PineStream.git"
 ENV GITHUB_BRANCH="main"
 ENV NUXT_TELEMETRY_DISABLED=1
 
-# Create startup scripts in container-scripts directory
+# Create startup script
 RUN echo '#!/bin/bash\n\
 echo "🚀 Starting PineStream workshop environment"\n\
 \n\
@@ -100,29 +106,19 @@ rm -rf /app\n\
 echo "📥 Cloning repository..."\n\
 git clone -b ${GITHUB_BRANCH:-main} $GITHUB_REPO /app\n\
 \n\
-# Install dependencies fresh (pnpm store approach was too large)\n\
-echo "📦 Installing dependencies..."\n\
+# Copy pre-installed dependencies from container image to fresh repo\n\
+echo "📦 Restoring pre-installed dependencies..."\n\
+cp -r /container-scripts/deps/package.json /app/webapp/\n\
+cp -r /container-scripts/deps/pnpm-lock.yaml /app/webapp/\n\
+\n\
+# Use pnpm store to restore dependencies (faster than full install)\n\
+echo "📦 Restoring dependencies from pnpm store..."\n\
 cd /app/webapp\n\
-pnpm install --frozen-lockfile\n\
+pnpm install --frozen-lockfile --offline\n\
 \n\
 echo "🌐 Starting code-server with webapp folder..."\n\
 cd /app\n\
-code-server --bind-addr 0.0.0.0:8080 --auth none --user-data-dir /home/coder/.local/share/code-server/user-data --extensions-dir /home/coder/.local/share/code-server/extensions . &\n\
-\n\
-# Wait for code-server to start\n\
-sleep 3\n\
-\n\
-echo "✅ PineStream workshop environment is ready!"\n\
-echo "🌐 Access VS Code at: http://localhost:8080 (opens webapp folder directly)"\n\
-echo "📱 Access Nuxt app at: http://localhost:3000 (when started)"\n\
-echo "🔧 To start Nuxt dev server, run: pnpm dev"\n\
-echo ""\n\
-echo "🐚 Dropping into interactive shell..."\n\
-echo "💡 You can now run commands, start services, or use the terminal"\n\
-echo ""\n\
-\n\
-# Drop into interactive shell\n\
-exec /bin/bash\n\
+exec code-server --bind-addr 0.0.0.0:8080 --auth none --user-data-dir /home/coder/.local/share/code-server/user-data --extensions-dir /home/coder/.local/share/code-server/extensions .\n\
 ' > /container-scripts/start.sh && chmod +x /container-scripts/start.sh
 
 # Default command
