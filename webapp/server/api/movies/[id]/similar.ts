@@ -10,6 +10,16 @@ export default defineEventHandler(async (event) => {
     });
   }
 
+  // Check if required APIs are available
+  if (!isPineconeAvailable) {
+    return {
+      error: "API_UNAVAILABLE",
+      message:
+        "Similar movies are not available. Please configure your Pinecone API key.",
+      status: "unavailable",
+    };
+  }
+
   try {
     // STEP 1: Fetch the current movie from database using MovieService
     const currentMovie = movieService.getMovieById(id);
@@ -184,6 +194,14 @@ export default defineEventHandler(async (event) => {
   }
 
   async function addSimilarityDescriptions(currentMovie: any, batch: any[]) {
+    // Check if Groq API is available
+    if (!isGroqAvailable) {
+      // Return generic descriptions when Groq is not available
+      return batch.map(
+        () => `Similar to ${currentMovie.title} in genre and style.`
+      );
+    }
+
     // Prepare the base prompt for individual movie comparisons
     const systemPrompt = `You are a movie plot analyzing expert. 
         The user is viewing a web page that displays a movie details and similar movies. 
@@ -201,22 +219,31 @@ export default defineEventHandler(async (event) => {
       Explain to the user why the movies are similar (plot, genre, tone, atmosphere, ..). 
       Keep the description to ONE sentence PER LINE. 
       Do not output anything but the sentences. Do not number nor bullet the sentences.`;
-    const groq = await getGroqClient();
-    const prompt = buildPrompt(currentMovie, batch);
-    const completion = await groq.chat.completions.create({
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: prompt },
-      ],
-      model: GROQ_MODELS.GEMMA2_9B,
-      temperature: 0.3,
-      max_tokens: 400,
-    });
-    const response = completion.choices[0]?.message?.content || "";
-    return response
-      .split("\n")
-      .filter((line) => line.trim().length > 0)
-      .slice(0, batch.length);
+
+    try {
+      const groq = await getGroqClient();
+      const prompt = buildPrompt(currentMovie, batch);
+      const completion = await groq.chat.completions.create({
+        messages: [
+          { role: "system", content: systemPrompt },
+          { role: "user", content: prompt },
+        ],
+        model: GROQ_MODELS.GEMMA2_9B,
+        temperature: 0.3,
+        max_tokens: 400,
+      });
+      const response = completion.choices[0]?.message?.content || "";
+      return response
+        .split("\n")
+        .filter((line) => line.trim().length > 0)
+        .slice(0, batch.length);
+    } catch (error) {
+      console.error("Error generating similarity descriptions:", error);
+      // Fallback: add generic descriptions if LLM fails
+      return batch.map(
+        () => `Similar to ${currentMovie.title} in genre and style.`
+      );
+    }
   }
 
   function buildResponse(currentMovie: any, similarMovies: any[]) {

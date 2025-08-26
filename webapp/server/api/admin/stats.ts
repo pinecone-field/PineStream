@@ -33,13 +33,24 @@ export default defineEventHandler(async (event) => {
   }
 
   try {
-    // Get database stats using the new service classes
+    // Get database stats using the new service classes (these don't require Pinecone)
     const [totalMovies, watchedMovies] = await Promise.all([
       Promise.resolve(movieService.getMovieCount()),
       Promise.resolve(userService.getWatchedMovieCount()),
     ]);
 
-    // Get embedding counts from Pinecone (optimized with parallel calls)
+    // Check if Pinecone is available for embedding counts
+    if (!isPineconeAvailable) {
+      return {
+        totalMovies,
+        watchedMovies,
+        denseEmbeddings: null,
+        sparseEmbeddings: null,
+        isPineconeAvailable: false,
+      };
+    }
+
+    // Get embedding counts from Pinecone (only if available)
     const embeddings = await getEmbeddingsCounts();
 
     return {
@@ -47,6 +58,7 @@ export default defineEventHandler(async (event) => {
       watchedMovies,
       denseEmbeddings: embeddings.dense,
       sparseEmbeddings: embeddings.sparse,
+      isPineconeAvailable: true,
     };
   } catch (error) {
     console.error("Error fetching database stats:", error);

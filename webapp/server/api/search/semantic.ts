@@ -24,6 +24,17 @@ function extractJSONFromResponse(response: string): string {
 
 // Analyze search query to extract genres and date range for Pinecone metadata filtering
 async function analyzeSearchQuery(searchQuery: string): Promise<SearchFilters> {
+  // Check if Groq API is available
+  if (!isGroqAvailable) {
+    // Return default filters when Groq is not available
+    return {
+      hasFilters: false,
+      userMessage:
+        "AI-powered query analysis is not available. Please configure your Groq API key.",
+      rephrasedQuery: searchQuery,
+    };
+  }
+
   const systemPrompt = `You are a movie search query analyzer. 
 Extract the intent from user queries and construct JSON object for vector database metadata filtering.
 
@@ -61,8 +72,9 @@ Query: "car chasing movie from the 90s" → {"genres": ["action"], "dateRange": 
 Query: "comedy films from 2020" → {"genres": ["comedy"], "dateRange": {"start": "2020-01-01", "end": "2020-12-31"}, "rephrasedQuery": "any movie", "userMessage": "Based on your request, we filtered movies by comedy \`genres\` and released in \`2020\`.", "hasFilters": true}
 Query: "robots exploring space and fighting aliens" → {"genres": ["action", "adventure", "sci-fi"], "dateRange": null, "rephrasedQuery": "robots exploring space and fighting aliens", "userMessage": "Based on your request, we filtered movies by \`action\`, \`adventure\`, and \`sci-fi\` genres.", "hasFilters": true}
 `;
-  const groq = await getGroqClient();
+
   try {
+    const groq = await getGroqClient();
     const completion = await groq.chat.completions.create({
       messages: [
         { role: "system", content: systemPrompt },
@@ -118,6 +130,16 @@ export default defineEventHandler(async (event) => {
     return {
       movies: [],
       total: 0,
+    };
+  }
+
+  // Check if required APIs are available
+  if (!isPineconeAvailable) {
+    return {
+      error: "API_UNAVAILABLE",
+      message:
+        "Vector search is not available. Please configure your Pinecone API key.",
+      status: "unavailable",
     };
   }
 

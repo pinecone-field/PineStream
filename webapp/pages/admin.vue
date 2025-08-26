@@ -44,9 +44,10 @@
             Generate dense embeddings for all movies in the database. This
             process may take some time.
           </p>
+
           <button
             @click="generateDenseEmbeddings"
-            :disabled="isGeneratingDense"
+            :disabled="isGeneratingDense || !isPineconeAvailable"
             class="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
           >
             <span v-if="!isGeneratingDense">Generate Dense Embeddings</span>
@@ -56,6 +57,7 @@
           <!-- Progress Bar for Dense Embeddings -->
           <div
             v-if="
+              isPineconeAvailable &&
               denseProgress &&
               denseProgress.isGenerating &&
               denseProgress.total > 0
@@ -97,7 +99,7 @@
             </div>
           </div>
           <div
-            v-if="denseResult"
+            v-if="isPineconeAvailable && denseResult"
             class="mt-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded"
           >
             <div class="font-semibold">{{ denseResult }}</div>
@@ -106,7 +108,7 @@
             </div>
           </div>
           <div
-            v-if="denseError"
+            v-if="isPineconeAvailable && denseError"
             class="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded"
           >
             {{ denseError }}
@@ -122,9 +124,10 @@
             Generate sparse embeddings for all movies in the database. This
             process may take some time.
           </p>
+
           <button
             @click="generateSparseEmbeddings"
-            :disabled="isGeneratingSparse"
+            :disabled="isGeneratingSparse || !isPineconeAvailable"
             class="w-full bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-lg transition-colors duration-200"
           >
             <span v-if="!isGeneratingSparse">Generate Sparse Embeddings</span>
@@ -134,6 +137,7 @@
           <!-- Progress Bar for Sparse Embeddings -->
           <div
             v-if="
+              isPineconeAvailable &&
               sparseProgress &&
               sparseProgress.isGenerating &&
               sparseProgress.total > 0
@@ -175,9 +179,8 @@
               {{ formatTimeRemaining(sparseTimeRemaining) }}
             </div>
           </div>
-
           <div
-            v-if="sparseResult"
+            v-if="isPineconeAvailable && sparseResult"
             class="mt-4 p-3 bg-green-100 border border-green-400 text-green-700 rounded"
           >
             <div class="font-semibold">{{ sparseResult }}</div>
@@ -186,7 +189,7 @@
             </div>
           </div>
           <div
-            v-if="sparseError"
+            v-if="isPineconeAvailable && sparseError"
             class="mt-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded"
           >
             {{ sparseError }}
@@ -219,13 +222,21 @@
           </div>
           <div class="text-center">
             <div class="text-2xl font-bold text-purple-600">
-              {{ (dbStats && dbStats.denseEmbeddings) || 0 }}
+              {{
+                dbStats && dbStats.denseEmbeddings !== null
+                  ? dbStats.denseEmbeddings
+                  : "N/A"
+              }}
             </div>
             <div class="text-sm text-gray-600">Dense Embeddings</div>
           </div>
           <div class="text-center">
             <div class="text-2xl font-bold text-orange-600">
-              {{ (dbStats && dbStats.sparseEmbeddings) || 0 }}
+              {{
+                dbStats && dbStats.sparseEmbeddings !== null
+                  ? dbStats.sparseEmbeddings
+                  : "N/A"
+              }}
             </div>
             <div class="text-sm text-gray-600">Sparse Embeddings</div>
           </div>
@@ -277,6 +288,7 @@ const denseError = ref("");
 const sparseError = ref("");
 const denseCompletedTime = ref("");
 const sparseCompletedTime = ref("");
+const isPineconeAvailable = ref(false);
 
 // Initialize dbStats with safe defaults for SSR
 const dbStats = ref({
@@ -477,15 +489,17 @@ const loadDatabaseStats = async () => {
   try {
     const response = await $fetch("/api/admin/stats");
     dbStats.value = response;
+    isPineconeAvailable.value = response.isPineconeAvailable;
   } catch (error) {
     console.error("Error loading database stats:", error);
     // Fallback to default values if API fails
     dbStats.value = {
       totalMovies: 0,
       watchedMovies: 0,
-      denseEmbeddings: 0,
-      sparseEmbeddings: 0,
+      denseEmbeddings: null,
+      sparseEmbeddings: null,
     };
+    isPineconeAvailable.value = false;
   } finally {
     loadingStats.value = false;
   }

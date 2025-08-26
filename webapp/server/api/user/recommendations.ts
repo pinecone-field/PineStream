@@ -2,6 +2,16 @@ const userService = new UserService();
 const movieService = new MovieService();
 
 export default defineEventHandler(async (event) => {
+  // Check if required APIs are available
+  if (!isPineconeAvailable) {
+    return {
+      error: "API_UNAVAILABLE",
+      message:
+        "AI recommendations are not available. Please configure your Pinecone API key.",
+      status: "unavailable",
+    };
+  }
+
   try {
     // Get watched movie IDs and their chunk IDs using the new UserService
     const watchedResults = userService.getWatchedMoviesChunks();
@@ -20,8 +30,8 @@ export default defineEventHandler(async (event) => {
       .map((row) => row.chunk_id)
       .filter((chunkId) => chunkId !== null); // Filter out nulls from LEFT JOIN
 
+    // If no chunks found, return empty list
     if (chunkIds.length === 0) {
-      // If no chunks found, return empty list
       return {
         recommendations: [],
         watchedCount: watchedIds.length,

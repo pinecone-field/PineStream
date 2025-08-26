@@ -119,35 +119,18 @@
             </div>
           </div>
 
-          <!-- Similar Movies Section - Remaining Height After Plot -->
+          <!-- Similar Movies Section -->
           <div
+            v-if="
+              !loadingSimilarMovies && similarMovies && similarMovies.length > 0
+            "
             class="flex-1 bg-gray-900/90 border-l border-gray-700 flex flex-col overflow-hidden min-h-0"
           >
             <div class="p-6 pb-4">
-              <h2 class="text-xl font-bold mb-4 text-white">Similar Movies</h2>
+              <h2 class="text-lg font-bold mb-4 text-white">Similar Movies</h2>
             </div>
             <div class="h-full px-6 pb-6 overflow-y-auto">
-              <!-- Loading State for Similar Movies -->
-              <div v-if="similarMoviesLoading" class="grid grid-cols-1 gap-4">
-                <div v-for="i in 4" :key="i" class="animate-pulse">
-                  <div class="flex space-x-3 p-3 bg-gray-800/50 rounded-lg">
-                    <div
-                      class="w-16 h-20 bg-gray-700 rounded flex-shrink-0"
-                    ></div>
-                    <div class="flex-1 space-y-2">
-                      <div class="h-4 bg-gray-700 rounded w-3/4"></div>
-                      <div class="h-3 bg-gray-700 rounded w-1/2"></div>
-                      <div class="h-3 bg-gray-700 rounded w-full"></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              <!-- Similar Movies List -->
-              <div
-                v-else-if="similarMovies && similarMovies.length > 0"
-                class="space-y-3"
-              >
+              <div class="space-y-3">
                 <NuxtLink
                   v-for="similarMovie in similarMovies"
                   :key="similarMovie.id"
@@ -175,7 +158,7 @@
                     <div class="flex-1 min-w-0">
                       <!-- Title and Year -->
                       <h3
-                        class="font-semibold text-white group-hover:text-blue-400 transition-colors mb-1 text-sm"
+                        class="font-semibold text-white group-hover:text-blue-400 transition-colors mb-1 text-base"
                       >
                         {{ similarMovie.title }}
                         <span class="text-gray-400 font-normal">
@@ -187,7 +170,7 @@
 
                       <!-- Rating and Genre -->
                       <div
-                        class="flex items-center space-x-3 text-xs text-gray-400 mb-2"
+                        class="flex items-center space-x-3 text-sm text-gray-400 mb-2"
                       >
                         <span class="flex items-center">
                           ⭐
@@ -201,21 +184,46 @@
                       <!-- Similarity Description -->
                       <p
                         v-if="similarMovie.similarityDescription"
-                        class="text-xs text-gray-300 leading-relaxed line-clamp-2"
+                        class="text-sm text-gray-300 leading-relaxed line-clamp-2"
                       >
                         {{ similarMovie.similarityDescription }}
                       </p>
-                      <p v-else class="text-xs text-gray-500 italic">
+                      <p v-else class="text-sm text-gray-500 italic">
                         Similar to {{ movie.title }} in genre and style.
                       </p>
                     </div>
                   </div>
                 </NuxtLink>
               </div>
+            </div>
+          </div>
 
-              <!-- No Similar Movies State -->
-              <div v-else class="text-center text-gray-400 py-4">
-                <p class="text-sm">No similar movies found</p>
+          <!-- Similar Movies Loading Section -->
+          <div
+            v-else-if="loadingSimilarMovies"
+            class="flex-1 bg-gray-900/90 border-l border-gray-700 flex flex-col overflow-hidden min-h-0"
+          >
+            <div class="p-6 pb-4">
+              <h2
+                class="text-3xl font-bold mb-4 text-white border-b border-gray-600 pb-2"
+              >
+                Similar Movies
+              </h2>
+            </div>
+            <div class="h-full px-6 pb-6 overflow-y-auto">
+              <div class="space-y-3">
+                <div v-for="i in 4" :key="i" class="animate-pulse">
+                  <div class="flex space-x-3 p-3 bg-gray-800/50 rounded-lg">
+                    <div
+                      class="w-16 h-20 bg-gray-700 rounded flex-shrink-0"
+                    ></div>
+                    <div class="flex-1 space-y-2">
+                      <div class="h-4 bg-gray-700 rounded w-3/4"></div>
+                      <div class="h-3 bg-gray-700 rounded w-1/2"></div>
+                      <div class="h-3 bg-gray-700 rounded w-full"></div>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
@@ -270,7 +278,7 @@ const route = useRoute();
 const movie = ref(null);
 const loading = ref(true);
 const similarMovies = ref(null);
-const similarMoviesLoading = ref(false);
+const loadingSimilarMovies = ref(false);
 const isWatched = ref(false);
 const showVideoPlayer = ref(false);
 const showPlotPopup = ref(false);
@@ -292,18 +300,26 @@ const loadMovie = async () => {
   }
 };
 
-// Load similar movies data
+// Load similar movies
 const loadSimilarMovies = async () => {
   try {
-    similarMoviesLoading.value = true;
+    loadingSimilarMovies.value = true;
     const movieId = route.params.id;
-    const data = await $fetch(`/api/movies/${movieId}/similar`);
-    similarMovies.value = data.similarMovies;
+    const response = await $fetch(`/api/movies/${movieId}/similar`);
+
+    // Check if this is an API unavailable error
+    if (response.error === "API_UNAVAILABLE") {
+      // API is not available, set empty similar movies
+      similarMovies.value = [];
+      return;
+    }
+
+    similarMovies.value = response.similarMovies || [];
   } catch (error) {
     console.error("Error loading similar movies:", error);
     similarMovies.value = [];
   } finally {
-    similarMoviesLoading.value = false;
+    loadingSimilarMovies.value = false;
   }
 };
 

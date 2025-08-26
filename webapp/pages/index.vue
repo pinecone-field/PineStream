@@ -38,37 +38,97 @@
     </section>
 
     <!-- Recommendations Section -->
-    <section class="container mx-auto px-4 py-8">
+    <section
+      v-if="
+        !loadingRecommendations && recommendations && recommendations.length > 0
+      "
+      class="container mx-auto px-4 py-8"
+    >
       <div class="flex items-center justify-between mb-6">
         <h3 class="text-2xl font-bold">Recommended for You</h3>
         <div class="text-sm text-gray-400">
-          Based on {{ watchedCount }} watched movies
+          Based on {{ watchedCount || 0 }} watched movies
         </div>
       </div>
 
-      <!-- Skeleton loading for recommendations -->
-      <div
-        v-if="loadingRecommendations"
-        class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4"
-      >
-        <MovieCardSkeleton v-for="i in 6" :key="i" />
+      <!-- Recommendations content with scroll buttons -->
+      <div class="relative">
+        <!-- Left Arrow -->
+        <button
+          @click="scrollRecommendations('left')"
+          class="absolute -left-12 top-1/2 transform -translate-y-1/2 z-10 bg-black/80 hover:bg-black text-white p-3 rounded-full shadow-lg transition-all duration-200 hover:scale-110"
+          :class="{ 'opacity-50 cursor-not-allowed': !canScrollLeftComputed }"
+          :disabled="!canScrollLeftComputed"
+        >
+          <svg
+            class="w-6 h-6"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M15 19l-7-7 7-7"
+            ></path>
+          </svg>
+        </button>
+
+        <!-- Right Arrow -->
+        <button
+          @click="scrollRecommendations('right')"
+          class="absolute -right-12 top-1/2 transform -translate-y-1/2 z-10 bg-black/80 hover:bg-black text-white p-3 rounded-full shadow-lg transition-all duration-200 hover:scale-110"
+          :class="{ 'opacity-50 cursor-not-allowed': !canScrollRightComputed }"
+          :disabled="!canScrollRightComputed"
+        >
+          <svg
+            class="w-6 h-6"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M9 5l7 7-7 7"
+            ></path>
+          </svg>
+        </button>
+
+        <!-- Scrollable content -->
+        <div
+          ref="recommendationsContainer"
+          class="flex space-x-6 overflow-x-auto pb-4 scrollbar-hide"
+          style="scroll-behavior: smooth"
+        >
+          <div
+            v-for="movie in recommendations"
+            :key="movie.id"
+            class="flex-shrink-0 w-64"
+          >
+            <MovieCard :movie="movie" @click="goToMovie" />
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Recommendations Loading Section -->
+    <section
+      v-else-if="loadingRecommendations"
+      class="container mx-auto px-4 py-8"
+    >
+      <div class="flex items-center justify-between mb-6">
+        <h3 class="text-2xl font-bold">Recommended for You</h3>
+        <div class="text-sm text-gray-400">Loading...</div>
       </div>
 
-      <!-- Recommendations content -->
-      <div
-        v-else-if="recommendations.length > 0"
-        class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4"
-      >
-        <MovieCard
-          v-for="movie in recommendations"
-          :key="movie.id"
-          :movie="movie"
-          @click="goToMovie"
-        />
-      </div>
-      <!-- No Recommendations State -->
-      <div v-else class="text-center text-gray-400 py-8">
-        <p>No recommendations found</p>
+      <!-- Skeleton loading for recommendations -->
+      <div class="flex space-x-6 overflow-x-auto pb-4 scrollbar-hide">
+        <div v-for="i in 6" :key="i" class="flex-shrink-0 w-64">
+          <MovieCardSkeleton />
+        </div>
       </div>
     </section>
 
@@ -224,6 +284,9 @@ const pagination = ref({
 const showVideoPlayer = ref(false);
 const loadingMovies = ref(false);
 const loadingRecommendations = ref(false);
+const recommendationsContainer = ref(null); // Ref for the scrollable container
+const canScrollLeft = ref(false);
+const canScrollRight = ref(false);
 
 // Load movies
 const loadMovies = async (page = 1) => {
@@ -269,10 +332,22 @@ const loadRecommendations = async () => {
   loadingRecommendations.value = true;
   try {
     const response = await $fetch("/api/user/recommendations");
-    recommendations.value = response.recommendations;
-    watchedCount.value = response.watchedCount;
+
+    // Check if this is an API unavailable error
+    if (response.error === "API_UNAVAILABLE") {
+      // API is not available, set empty recommendations
+      recommendations.value = [];
+      watchedCount.value = 0;
+      return;
+    }
+
+    recommendations.value = response.recommendations || [];
+    watchedCount.value = response.watchedCount || 0;
   } catch (error) {
     console.error("Error loading recommendations:", error);
+    // On error, set empty values
+    recommendations.value = [];
+    watchedCount.value = 0;
   } finally {
     loadingRecommendations.value = false;
   }
@@ -330,11 +405,56 @@ const closeVideoPlayer = () => {
   showVideoPlayer.value = false;
 };
 
+// Scroll recommendations left or right
+const scrollRecommendations = (direction) => {
+  if (!recommendationsContainer.value) return;
+
+  const container = recommendationsContainer.value;
+  const scrollAmount = 300; // Fixed scroll amount
+
+  if (direction === "left") {
+    container.scrollLeft = Math.max(0, container.scrollLeft - scrollAmount);
+  } else {
+    container.scrollLeft = Math.min(
+      container.scrollWidth - container.clientWidth,
+      container.scrollLeft + scrollAmount
+    );
+  }
+
+  // Update scroll states after scrolling
+  updateScrollStates();
+};
+
+// Update scroll states
+const updateScrollStates = () => {
+  if (!recommendationsContainer.value) return;
+
+  const container = recommendationsContainer.value;
+  canScrollLeft.value = container.scrollLeft > 0;
+  canScrollRight.value =
+    container.scrollLeft < container.scrollWidth - container.clientWidth - 1;
+};
+
+// Watch for scroll events
+const setupScrollListener = () => {
+  if (recommendationsContainer.value) {
+    recommendationsContainer.value.addEventListener(
+      "scroll",
+      updateScrollStates
+    );
+  }
+};
+
+// Remove debug logging
+const canScrollLeftComputed = computed(() => canScrollLeft.value);
+const canScrollRightComputed = computed(() => canScrollRight.value);
+
 // Load initial data
 onMounted(() => {
   const pageFromUrl = parseInt(route.query.page) || 1;
   loadMovies(pageFromUrl);
   loadRecommendations();
+  setupScrollListener(); // Set up scroll listener on mount
 });
 
 // Watch for route changes to handle pagination
@@ -345,6 +465,17 @@ watch(
     loadMovies(page);
   }
 );
+
+// Watch for recommendations container to set up scroll listener
+watch(recommendationsContainer, (newContainer) => {
+  if (newContainer) {
+    setupScrollListener();
+    // Update initial scroll states
+    nextTick(() => {
+      updateScrollStates();
+    });
+  }
+});
 </script>
 
 <style scoped>

@@ -15,19 +15,26 @@ let groqInstance: Groq | null = null;
 
 // Initialize Groq client (singleton)
 export async function getGroqClient() {
-  if (groqInstance) {
-    return groqInstance;
+  // Check environment variables first to update global status
+  checkEnvironmentVariables();
+
+  if (!groqInstance) {
+    const apiKey = process.env.GROQ_API_KEY;
+    if (!apiKey) {
+      setGroqAvailable(false);
+      throw new Error("GROQ_API_KEY environment variable is required");
+    }
+    try {
+      groqInstance = new Groq({ apiKey: apiKey });
+      // Test the connection by listing models (this doesn't use credits)
+      await groqInstance.models.list();
+      // If we get here, the connection was successful
+      setGroqAvailable(true);
+      return groqInstance;
+    } catch (error) {
+      setGroqAvailable(false);
+      throw error;
+    }
   }
-
-  const apiKey = process.env.GROQ_API_KEY;
-
-  if (!apiKey) {
-    throw new Error("GROQ_API_KEY environment variable is required");
-  }
-
-  groqInstance = new Groq({
-    apiKey: apiKey,
-  });
-
   return groqInstance;
 }

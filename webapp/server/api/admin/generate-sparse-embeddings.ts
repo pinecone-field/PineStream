@@ -84,6 +84,16 @@ export default defineEventHandler(async (event) => {
     });
   }
 
+  // Check if required APIs are available
+  if (!isPineconeAvailable) {
+    return {
+      error: "API_UNAVAILABLE",
+      message:
+        "Embedding generation is not available. Please configure your Pinecone API key.",
+      status: "unavailable",
+    };
+  }
+
   // Check if already running
   if ((global as any).sparseProgress.isRunning) {
     throw createError({
@@ -95,7 +105,7 @@ export default defineEventHandler(async (event) => {
   try {
     const startTime = Date.now();
 
-    // Get all movies from database using AdminService
+    // Get all movies from AdminService
     const movies = adminService.getAllMovies();
 
     // Process movies with batching for the full plots
@@ -126,7 +136,7 @@ export default defineEventHandler(async (event) => {
 
     for (const movie of movies) {
       try {
-        // Extract chunks for this movie using the new function
+        // Extract chunks for this movie
         const movieChunks = await extractChunksForMovie(movie);
 
         // Add chunks to current batch

@@ -127,6 +127,16 @@ export default defineEventHandler(async (event) => {
     });
   }
 
+  // Check if required APIs are available
+  if (!isPineconeAvailable) {
+    return {
+      error: "API_UNAVAILABLE",
+      message:
+        "Embedding generation is not available. Please configure your Pinecone API key.",
+      status: "unavailable",
+    };
+  }
+
   // Check if already running
   if ((global as any).denseProgress.isRunning) {
     throw createError({

@@ -12,26 +12,28 @@ let indexesValidated = false;
 
 // Initialize Pinecone client (with index validation)
 export async function getPineconeClient() {
-  if (pineconeClient) {
-    return pineconeClient;
+  // Check environment variables first to update global status
+  checkEnvironmentVariables();
+  
+  if (!pineconeClient) {
+    const apiKey = process.env.PINECONE_API_KEY;
+    if (!apiKey) {
+      setPineconeAvailable(false);
+      throw new Error("PINECONE_API_KEY environment variable is required");
+    }
+    try {
+      pineconeClient = new Pinecone({ apiKey: apiKey });
+      if (!indexesValidated) {
+        await ensureIndexesExist(pineconeClient);
+        indexesValidated = true;
+      }
+      setPineconeAvailable(true);
+      return pineconeClient;
+    } catch (error) {
+      setPineconeAvailable(false);
+      throw error;
+    }
   }
-
-  const apiKey = process.env.PINECONE_API_KEY;
-
-  if (!apiKey) {
-    throw new Error("PINECONE_API_KEY environment variable is required");
-  }
-
-  pineconeClient = new Pinecone({
-    apiKey: apiKey,
-  });
-
-  // Only validate indexes once when the module is first loaded
-  if (!indexesValidated) {
-    await ensureIndexesExist(pineconeClient);
-    indexesValidated = true;
-  }
-
   return pineconeClient;
 }
 
