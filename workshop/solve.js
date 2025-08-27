@@ -20,49 +20,56 @@
 const fs = require("fs");
 const path = require("path");
 
+// Get the directory where this script is located
+const SCRIPT_DIR = __dirname;
+
+// Helper function to resolve paths relative to script location
+function resolvePath(relativePath) {
+  return path.resolve(SCRIPT_DIR, relativePath);
+}
+
 // Map of solution IDs to their file paths
 const SOLUTION_MAP = {
-  "similar-movies-retrieval": "workshop/solutions/similar-movies-retrieval.ts",
-  "similar-movies-generation":
-    "workshop/solutions/similar-movies-generation.ts",
-  "semantic-search-vector": "workshop/solutions/semantic-search-vector.ts",
-  "semantic-search-rerank": "workshop/solutions/semantic-search-rerank.ts",
-  "semantic-search-insight": "workshop/solutions/semantic-search-insight.ts",
-  "dense-embeddings-extract": "workshop/solutions/dense-embeddings-extract.ts",
-  "dense-embeddings-upsert": "workshop/solutions/dense-embeddings-upsert.ts",
-  "sparse-embeddings-extract":
-    "workshop/solutions/sparse-embeddings-extract.ts",
-  "sparse-embeddings-upsert": "workshop/solutions/sparse-embeddings-upsert.ts",
-  "user-recommendations": "workshop/solutions/user-recommendations.ts",
+  "similar-movies-retrieval": "solutions/similar-movies-retrieval.ts",
+  "similar-movies-generation": "solutions/similar-movies-generation.ts",
+  "semantic-search-vector": "solutions/semantic-search-vector.ts",
+  "semantic-search-rerank": "solutions/semantic-search-rerank.ts",
+  "semantic-search-insight": "solutions/semantic-search-insight.ts",
+  "dense-embeddings-extract": "solutions/dense-embeddings-extract.ts",
+  "dense-embeddings-upsert": "solutions/dense-embeddings-upsert.ts",
+  "sparse-embeddings-extract": "solutions/sparse-embeddings-extract.ts",
+  "sparse-embeddings-upsert": "solutions/sparse-embeddings-upsert.ts",
+  "user-recommendations": "solutions/user-recommendations.ts",
 };
 
 // Map of solution IDs to their target files
 const TARGET_MAP = {
-  "similar-movies-retrieval": "webapp/server/api/movies/[id]/similar.ts",
-  "similar-movies-generation": "webapp/server/api/movies/[id]/similar.ts",
-  "semantic-search-vector": "webapp/server/api/search/semantic.ts",
-  "semantic-search-rerank": "webapp/server/api/search/semantic.ts",
-  "semantic-search-insight": "webapp/server/api/search/semantic.ts",
+  "similar-movies-retrieval": "../webapp/server/api/movies/[id]/similar.ts",
+  "similar-movies-generation": "../webapp/server/api/movies/[id]/similar.ts",
+  "semantic-search-vector": "../webapp/server/api/search/semantic.ts",
+  "semantic-search-rerank": "../webapp/server/api/search/semantic.ts",
+  "semantic-search-insight": "../webapp/server/api/search/semantic.ts",
   "dense-embeddings-extract":
-    "webapp/server/api/admin/generate-dense-embeddings.post.ts",
+    "../webapp/server/api/admin/generate-dense-embeddings.post.ts",
   "dense-embeddings-upsert":
-    "webapp/server/api/admin/generate-dense-embeddings.post.ts",
+    "../webapp/server/api/admin/generate-dense-embeddings.post.ts",
   "sparse-embeddings-extract":
-    "webapp/server/api/admin/generate-sparse-embeddings.post.ts",
+    "../webapp/server/api/admin/generate-sparse-embeddings.post.ts",
   "sparse-embeddings-upsert":
-    "webapp/server/api/admin/generate-sparse-embeddings.post.ts",
-  "user-recommendations": "webapp/server/api/user/recommendations.ts",
+    "../webapp/server/api/admin/generate-sparse-embeddings.post.ts",
+  "user-recommendations": "../webapp/server/api/user/recommendations.ts",
 };
 
 // Backup storage
-const BACKUP_FILE = "workshop/backups.json";
+const BACKUP_FILE = "backups.json";
 let backupData = {};
 
 // Load existing backups
 function loadBackups() {
   try {
-    if (fs.existsSync(BACKUP_FILE)) {
-      backupData = JSON.parse(fs.readFileSync(BACKUP_FILE, "utf8"));
+    const backupPath = resolvePath(BACKUP_FILE);
+    if (fs.existsSync(backupPath)) {
+      backupData = JSON.parse(fs.readFileSync(backupPath, "utf8"));
     }
   } catch (error) {
     console.log("No existing backups found, starting fresh");
@@ -73,11 +80,12 @@ function loadBackups() {
 // Save backups
 function saveBackups() {
   try {
-    const backupDir = path.dirname(BACKUP_FILE);
+    const backupPath = resolvePath(BACKUP_FILE);
+    const backupDir = path.dirname(backupPath);
     if (!fs.existsSync(backupDir)) {
       fs.mkdirSync(backupDir, { recursive: true });
     }
-    fs.writeFileSync(BACKUP_FILE, JSON.stringify(backupData, null, 2));
+    fs.writeFileSync(backupPath, JSON.stringify(backupData, null, 2));
   } catch (error) {
     console.error("Error saving backups:", error.message);
   }
@@ -320,10 +328,10 @@ function writeFile(filePath, content) {
 
 // Apply solution
 function solveSolution(solutionId) {
-  const solutionPath = SOLUTION_MAP[solutionId];
-  const targetPath = TARGET_MAP[solutionId];
+  const solutionPath = resolvePath(SOLUTION_MAP[solutionId]);
+  const targetPath = resolvePath(TARGET_MAP[solutionId]);
 
-  if (!solutionPath || !targetPath) {
+  if (!SOLUTION_MAP[solutionId] || !TARGET_MAP[solutionId]) {
     console.error(`❌ Unknown solution ID: ${solutionId}`);
     return false;
   }
@@ -360,9 +368,9 @@ function solveSolution(solutionId) {
 
 // Restore solution
 function restoreSolution(solutionId) {
-  const targetPath = TARGET_MAP[solutionId];
+  const targetPath = resolvePath(TARGET_MAP[solutionId]);
 
-  if (!targetPath) {
+  if (!TARGET_MAP[solutionId]) {
     console.error(`❌ Unknown solution ID: ${solutionId}`);
     return false;
   }
@@ -457,7 +465,7 @@ function createBackups() {
       let totalCount = Object.keys(TARGET_MAP).length;
 
       for (const solutionId of Object.keys(TARGET_MAP)) {
-        const targetPath = TARGET_MAP[solutionId];
+        const targetPath = resolvePath(TARGET_MAP[solutionId]);
         console.log(`📁 Backing up ${solutionId}...`);
 
         try {
@@ -515,7 +523,7 @@ Examples:
 Backup System:
   - Automatically creates backups when applying solutions
   - Use 'backup' command to manually create backups
-  - Backups are stored in: ${BACKUP_FILE}
+  - Backups are stored in: ${resolvePath(BACKUP_FILE)}
 `);
 }
 
