@@ -1,38 +1,153 @@
-## Semantic hybrid search
+## Recommendations
+
+- STEP 1: Find the watched movies and their chunk IDs
+
+```ts
+// Get the chunk ids related to user's watched movies
+const watchedMoviesChunks = userService.getWatchedMoviesChunks();
+
+if (watchedMoviesChunks.length === 0) {
+  return emptyRecommendations(0);
+}
+
+// Extract the movie IDs
+watchedMoviesIds = [...new Set(watchedMoviesChunks.map((row) => row.movie_id))];
+
+// Extract the chunk IDs
+const chunkIds = watchedMoviesChunks
+  .map((row) => row.chunk_id)
+  .filter((chunkId) => chunkId !== null); // Filter out nulls from LEFT JOIN
+
+// If no chunks found, return empty list
+if (chunkIds.length === 0) {
+  return emptyRecommendations(watchedMoviesIds.length);
+}
+```
+
+- STEP 2: Get the embeddings of the chunks of the watched movies
+
+```ts
+const pc = await getPineconeClient();
+
+// Get the dimension of the dense index
+const indexParamsResponse = await pc.describeIndex(
+  PINECONE_INDEXES.MOVIES_DENSE
+);
+const dimension = indexParamsResponse.dimension;
+if (!dimension) {
+  throw createError({
+    statusCode: 500,
+    statusMessage: "Dimension not found",
+  });
+}
+
+const denseIndex = pc.index(PINECONE_INDEXES.MOVIES_DENSE);
+
+// Fetch embeddings for all chunks of watched movies
+const fetchResponse = await denseIndex.fetch(chunkIds);
+const vectors = Object.values(fetchResponse.records).map(
+  (record: any) => record.values
+);
+
+if (vectors.length === 0) {
+  return emptyRecommendations(watchedMoviesIds.length);
+}
+```
+
+- STEP 3: Create a centroid from the embeddings of the watched movies
+
+```ts
+const centroid = new Array(dimension).fill(0);
+
+// First, sum the vectors
+vectors.forEach((vector: number[]) => {
+  for (let i = 0; i < dimension; i++) {
+    centroid[i] += vector[i];
+  }
+});
+
+// Then, divide by the number of vectors
+centroid.forEach((value, index) => {
+  centroid[index] = value / vectors.length;
+});
+```
+
+- STEP 4: Search for similar chunks using the centroid, excluding watched movies
+
+```ts
+const queryResponse = await denseIndex.query({
+  vector: centroid,
+  topK: 50, // Get more results since we'll deduplicate by movie
+  filter: {
+    movie_id: { $nin: watchedMoviesIds },
+  },
+  includeMetadata: true,
+});
+```
+
+- STEP 5: Extract the highest scored movies from the search results
+
+```ts
+// Extract movie IDs from recommendations and deduplicate, keeping track of scores
+const movieScores = new Map<number, number>();
+queryResponse.matches.forEach((match: any) => {
+  const movieId = match.metadata?.movie_id;
+  if (movieId && !isNaN(movieId)) {
+    // Keep the highest score for each movie (in case of multiple chunks)
+    const currentScore = movieScores.get(movieId) || 0;
+    if (match.score > currentScore) {
+      movieScores.set(movieId, match.score);
+    }
+  }
+});
+
+// Sort movies by score (highest first) and take top 10
+const topMovieIds = Array.from(movieScores.entries())
+  .sort(([, scoreA], [, scoreB]) => scoreB - scoreA)
+  .slice(0, 10)
+  .map(([movieId]) => movieId);
+
+// Fetch movie details from the database
+if (topMovieIds.length > 0) {
+  recommendations = movieService.getMoviesByIds(topMovieIds);
+}
+```
+
+## Semantic Hybrid Search
 
 ### Vector search
 
-```js
-  // Build the search options for Pinecone
-  const searchOptions: any = {
-    query: {
-      inputs: { text: searchText },
-      topK: limit,
-    },
-  };
+```ts
+// Build the search options for Pinecone
+const searchOptions: any = {
+  query: {
+    inputs: { text: searchText },
+    topK: limit,
+  },
+};
 
-  // Add the metadata filter if it exists
-  if (Object.keys(metadataFilter).length > 0) {
-    searchOptions.filter = metadataFilter;
+// Add the metadata filter if it exists
+if (Object.keys(metadataFilter).length > 0) {
+  searchOptions.filter = metadataFilter;
+}
+
+// Perform the vector search
+const pc = await getPineconeClient();
+const index = pc.index(indexName);
+const results = await index.searchRecords(searchOptions);
+
+// Extract movie IDs from the results
+results.result.hits.forEach((hit) => {
+  const movieId = (hit as any).fields?.movie_id;
+  if (movieId) {
+    movieIds.add(movieId);
   }
-
-  // Perform the vector search
-  const pc = await getPineconeClient();
-  const index = pc.index(indexName);
-  const results = await index.searchRecords(searchOptions);
-
-  // Extract movie IDs from the results
-  results.result.hits.forEach((hit) => {
-    const movieId = (hit as any).fields?.movie_id;
-    if (movieId) {
-      movieIds.add(movieId);
-    }
-  });
+});
 ```
 
 ### Reranking
 
-```js
+```ts
 // Fetch movie plots from database for reranking
 const movieIdsArray = Array.from(movieIds);
 const movies = movieService.getMoviesByIds(movieIdsArray);
@@ -82,9 +197,9 @@ highestRankedMovies = rerankResults.data
 
 ### Generation phase: ask the LLM to get insides about the query
 
-````js
-  // prepare the system prompt for the LLM
-  const systemPrompt = `You are a movie query analyzer.
+```ts
+// prepare the system prompt for the LLM
+const systemPrompt = `You are a movie query analyzer.
 Extract filters and optimized queries. Return ONLY JSON:
 
 {
@@ -139,42 +254,40 @@ Example output with only genre:
 }
 `;
 
-  try {
-    // Call the LLM via Groq API to get the insight
-    const groq = await getGroqClient();
-    const completion = await groq.chat.completions.create({
-      messages: [
-        { role: "system", content: systemPrompt },
-        { role: "user", content: searchQuery },
-      ],
-      model: GROQ_MODELS.LLAMA3_1_8B_INSTANT, // which LLM to use
-      temperature: 0.1, // Low temperature for consistent parsing
-      max_tokens: 300, // max tokens to generate
-    });
+try {
+  // Call the LLM via Groq API to get the insight
+  const groq = await getGroqClient();
+  const completion = await groq.chat.completions.create({
+    messages: [
+      { role: "system", content: systemPrompt },
+      { role: "user", content: searchQuery },
+    ],
+    model: GROQ_MODELS.LLAMA3_1_8B_INSTANT, // which LLM to use
+    temperature: 0.1, // Low temperature for consistent parsing
+    max_tokens: 300, // max tokens to generate
+  });
 
-    // get the response from the LLM
-    const response = completion.choices[0]?.message?.content || "{}";
+  // get the response from the LLM
+  const response = completion.choices[0]?.message?.content || "{}";
 
-    // Extract JSON from the response (in case it includes explanatory text)
-    const jsonString = extractJSONFromResponse(response);
-    const parsedInsight = JSON.parse(jsonString) as SearchInsight;
+  // Extract JSON from the response (in case it includes explanatory text)
+  const jsonString = extractJSONFromResponse(response);
+  const parsedInsight = JSON.parse(jsonString) as SearchInsight;
 
-
-    // construct the insight object
-    insight = {
-      genres: parsedInsight.genres || undefined,
-      dateRange: parsedInsight.dateRange || undefined,
-      hasFilters: parsedInsight.hasFilters || false,
-      userMessage:
-        parsedInsight.userMessage ||
-        "We found movies matching your description.",
-      denseQuery: parsedInsight.denseQuery || searchQuery,
-      sparseQuery: parsedInsight.sparseQuery || searchQuery,
-    };
-  } catch (error) {
-    console.error("Error analyzing search query:", error);
-  }```
-
+  // construct the insight object
+  insight = {
+    genres: parsedInsight.genres || undefined,
+    dateRange: parsedInsight.dateRange || undefined,
+    hasFilters: parsedInsight.hasFilters || false,
+    userMessage:
+      parsedInsight.userMessage || "We found movies matching your description.",
+    denseQuery: parsedInsight.denseQuery || searchQuery,
+    sparseQuery: parsedInsight.sparseQuery || searchQuery,
+  };
+} catch (error) {
+  console.error("Error analyzing search query:", error);
+}
+```
 
 ## RAG
 
@@ -182,7 +295,7 @@ Example output with only genre:
 
 - STEP 1: Prepare search text and metadata filters
 
-```js
+```ts
 const plotText = currentMovie.plot || "";
 const overviewText = currentMovie.overview || "";
 
@@ -198,11 +311,11 @@ const currentGenres = currentMovie.genre
       .map((g: string) => g.trim().toLowerCase())
       .filter((g: string) => g.length > 0)
   : [];
-````
+```
 
 - STEP 2: Search the sparse index for similar chunks
 
-```js
+```ts
 const pc = await getPineconeClient();
 const sparseIndex = pc.index(PINECONE_INDEXES.MOVIES_SPARSE);
 const searchResults = await sparseIndex.searchRecords({
@@ -223,27 +336,27 @@ const searchResults = await sparseIndex.searchRecords({
 
 - STEP 3: Extract the highest scored movies from the search results
 
-```js
-  const movieScoreMap = new Map<string, number>();
+```ts
+const movieScoreMap = new Map<string, number>();
 
-  // Iterate over the chunks and extract the highest score per movie
-  searchResults.result.hits.forEach((hit) => {
-    const movieId = (hit.fields as any).movie_id;
-    const score = hit._score || 0;
+// Iterate over the chunks and extract the highest score per movie
+searchResults.result.hits.forEach((hit) => {
+  const movieId = (hit.fields as any).movie_id;
+  const score = hit._score || 0;
 
-    if (movieId) {
-      // If the movie is already in the map, update the score if the new score is higher
-      const existingScore = movieScoreMap.get(movieId) || 0;
-      if (score > existingScore) {
-        movieScoreMap.set(movieId, score);
-      }
+  if (movieId) {
+    // If the movie is already in the map, update the score if the new score is higher
+    const existingScore = movieScoreMap.get(movieId) || 0;
+    if (score > existingScore) {
+      movieScoreMap.set(movieId, score);
     }
-  });
+  }
+});
 ```
 
 - STEP 4: Get the top 10 movies from the database
 
-```js
+```ts
 const topMovieIds = Array.from(movieScoreMap.entries())
   .sort(([, scoreA], [, scoreB]) => scoreB - scoreA)
   .slice(0, 10)
@@ -263,7 +376,7 @@ return similarMovies;
 
 ### Generation phase: ask the LLM to describe the similarity between the movies
 
-```js
+```ts
 // If Groq API is not available, return generic descriptions
 if (!isGroqAvailable) {
   return batch.map(
