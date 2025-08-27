@@ -24,6 +24,15 @@ const emptyInsight = (searchQuery: string): SearchInsight => {
   };
 };
 
+function extractJSONFromResponse(response: string): string {
+  // Look for JSON object in the response
+  const jsonMatch = response.match(/\{[\s\S]*\}/);
+  if (jsonMatch) {
+    return jsonMatch[0];
+  }
+  return "{}";
+}
+
 /**
  * This is the "Retrieval" part of the GAR (Generation Augmented Retrieval) pipeline.
  *
@@ -50,7 +59,8 @@ async function doVectorSearch(
   // PLACEHOLDER ID: semantic-search-vector
   // NOTE: Add your code here.
   // ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
-
+  //
+  //
   // ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
   // =============================================================
 
@@ -85,7 +95,8 @@ async function getHighestRankedMovies(
   // PLACEHOLDER ID: semantic-search-rerank
   // NOTE: Add your code here.
   // ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
-
+  //
+  //
   // ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
   // =============================================================
 
@@ -115,7 +126,8 @@ async function getSearchInsight(searchQuery: string): Promise<SearchInsight> {
   // PLACEHOLDER ID: semantic-search-insight
   // NOTE: Add your code here.
   // ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
-
+  //
+  //
   // ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
   // =============================================================
 

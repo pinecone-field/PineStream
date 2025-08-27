@@ -52,12 +52,14 @@ if (overviewText.trim()) {
       id: chunkId,
       text: chunk,
       title: movie.title || "Unknown Title",
-      genre: genreArray,
+      genre: csvToArray(movie.genre),
       movieId: movie.id,
       chunkIndex: chunkIndex,
       totalChunks: overviewChunks.length,
       source: "overview",
-      ...(releaseTimestamp && { releaseDate: releaseTimestamp }),
+      ...(movie.release_date && {
+        release_date: dateToNumber(movie.release_date),
+      }),
     });
   }
 }

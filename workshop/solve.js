@@ -240,7 +240,7 @@ function replacePlaceholder(content, solutionId, solutionContent) {
 
 // Restore placeholder from backup
 function restorePlaceholder(content, solutionId) {
-  if (!backupData[solutionId] || !backupData[solutionId].content) {
+  if (!backupData[solutionId] || backupData[solutionId].content === undefined) {
     console.error(`❌ No backup found for ${solutionId}`);
     return null;
   }

@@ -55,12 +55,14 @@ if (overviewText.trim()) {
       id: chunkId,
       text: chunk,
       title: movie.title || "Unknown Title",
-      genre: genreArray,
+      genre: csvToArray(movie.genre),
       movieId: movie.id,
       chunkIndex: chunkIndex,
       totalChunks: overviewChunks.length,
       source: "overview",
-      ...(releaseTimestamp && { releaseDate: releaseTimestamp }),
+      ...(movie.release_date && {
+        release_date: dateToNumber(movie.release_date),
+      }),
     });
   }
 }
@@ -540,7 +542,7 @@ return similarMovies;
 ```ts
 // If Groq API is not available, return generic descriptions
 if (!isGroqAvailable) {
-  return batch.map(
+  return similarMovies.map(
     () => `Similar to ${currentMovie.title} in genre and style.`
   );
 }
@@ -567,9 +569,9 @@ const systemPrompt = `You are a movie plot analyzing expert.
 try {
   const groq = await getGroqClient();
   const prompt = `
-      Reference Movie: \n${referenceMovie.title}
+      Reference Movie: \n${currentMovie.title}
       Plot: \n${
-        referenceMovie.plot || referenceMovie.overview || "No plot available"
+        currentMovie.plot || currentMovie.overview || "No plot available"
       }
 
       Movies to analyze:
@@ -588,7 +590,7 @@ try {
       { role: "system", content: systemPrompt },
       { role: "user", content: prompt },
     ],
-    model: GROQ_MODELS.GEMMA2_9B,
+    model: GROQ_MODELS.LLAMA3_1_8B_INSTANT, // which LLM to use
     temperature: 0.3,
     max_tokens: 400,
   });
@@ -596,11 +598,11 @@ try {
   return response
     .split("\n")
     .filter((line) => line.trim().length > 0)
-    .slice(0, batch.length);
+    .slice(0, similarMovies.length);
 } catch (error) {
   console.error("Error generating similarity descriptions:", error);
   // Fallback: add generic descriptions if LLM fails
-  return batch.map(
+  return similarMovies.map(
     () => `Similar to ${currentMovie.title} in genre and style.`
   );
 }

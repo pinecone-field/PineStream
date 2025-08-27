@@ -3,7 +3,7 @@
 
 // If Groq API is not available, return generic descriptions
 if (!isGroqAvailable) {
-  return batch.map(
+  return similarMovies.map(
     () => `Similar to ${currentMovie.title} in genre and style.`
   );
 }
@@ -30,9 +30,9 @@ const systemPrompt = `You are a movie plot analyzing expert.
 try {
   const groq = await getGroqClient();
   const prompt = `
-      Reference Movie: \n${referenceMovie.title}
+      Reference Movie: \n${currentMovie.title}
       Plot: \n${
-        referenceMovie.plot || referenceMovie.overview || "No plot available"
+        currentMovie.plot || currentMovie.overview || "No plot available"
       }
 
       Movies to analyze:
@@ -59,11 +59,11 @@ try {
   return response
     .split("\n")
     .filter((line) => line.trim().length > 0)
-    .slice(0, batch.length);
+    .slice(0, similarMovies.length);
 } catch (error) {
   console.error("Error generating similarity descriptions:", error);
   // Fallback: add generic descriptions if LLM fails
-  return batch.map(
+  return similarMovies.map(
     () => `Similar to ${currentMovie.title} in genre and style.`
   );
 }

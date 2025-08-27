@@ -43,7 +43,10 @@ async function retrieveSimilarMovies(currentMovie: any) {
  * The function is expected to call an LLM to generate the similarity descriptions
  * and returns an array of similarity descriptions.
  */
-async function generateSimilarityDescriptions(currentMovie: any, batch: any[]) {
+async function generateSimilarityDescriptions(
+  currentMovie: any,
+  similarMovies: any[]
+) {
   // =============================================================
   // PLACEHOLDER ID: similar-movies-generation
   // NOTE: Add your code here. Replace the one below.

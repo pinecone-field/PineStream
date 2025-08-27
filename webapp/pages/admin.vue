@@ -361,7 +361,11 @@ const startProgressPolling = () => {
       };
 
       // If dense generation just completed, show result
-      if (!denseProgressData.isRunning && denseProgressData.message) {
+      if (
+        !denseProgressData.isRunning &&
+        denseProgressData.message &&
+        isGeneratingDense.value
+      ) {
         denseResult.value = denseProgressData.message;
         const processingTime = (
           (Date.now() - denseProgressData.startTime) /
@@ -382,7 +386,11 @@ const startProgressPolling = () => {
       };
 
       // If sparse generation just completed, show result
-      if (!sparseProgressData.isRunning && sparseProgressData.message) {
+      if (
+        !sparseProgressData.isRunning &&
+        sparseProgressData.message &&
+        isGeneratingSparse.value
+      ) {
         sparseResult.value = sparseProgressData.message;
         const processingTime = (
           (Date.now() - sparseProgressData.startTime) /
