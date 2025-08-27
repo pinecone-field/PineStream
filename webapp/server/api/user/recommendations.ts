@@ -26,7 +26,8 @@ export default defineEventHandler(async (event) => {
     let watchedMoviesIds: number[] = [];
 
     // =============================================================
-    // PLACEHOLDER: Add your code for each step below.
+    // PLACEHOLDER ID: user-recommendations
+    // NOTE: Add your code for each step below.
     // ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
     //
     //

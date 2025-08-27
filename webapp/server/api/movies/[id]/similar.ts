@@ -10,7 +10,8 @@ const movieService = new MovieService();
  */
 async function retrieveSimilarMovies(currentMovie: any) {
   // =============================================================
-  // PLACEHOLDER: Add your code for each step below.
+  // PLACEHOLDER ID: similar-movies-retrieval
+  // NOTE: Add your code for each step below.
   // ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
   //
   // STEP 1: Prepare search text and metadata filters
@@ -44,7 +45,8 @@ async function retrieveSimilarMovies(currentMovie: any) {
  */
 async function generateSimilarityDescriptions(currentMovie: any, batch: any[]) {
   // =============================================================
-  // PLACEHOLDER: Add your code here. Replace the one below.
+  // PLACEHOLDER ID: similar-movies-generation
+  // NOTE: Add your code here. Replace the one below.
   // ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
 
   return batch.map(

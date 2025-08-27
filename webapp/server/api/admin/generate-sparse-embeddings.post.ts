@@ -21,7 +21,8 @@ async function extractChunksForMovie(movie: Movie): Promise<any[]> {
   const chunks: any[] = [];
 
   // =============================================================
-  // PLACEHOLDER: Add your code for each step below.
+  // PLACEHOLDER ID: sparse-embeddings-extract
+  // NOTE: Add your code for each step below.
   // ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
   //
   // STEP 1: Assert that the movie has a plot and overview
@@ -46,7 +47,8 @@ async function extractChunksForMovie(movie: Movie): Promise<any[]> {
  */
 async function upsertChunksToPinecone(chunks: any[]): Promise<void> {
   // =============================================================
-  // PLACEHOLDER: Add your code below.
+  // PLACEHOLDER ID: sparse-embeddings-upsert
+  // NOTE: Add your code below.
   // ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
   //
   //

@@ -21,7 +21,8 @@ async function extractChunksForMovie(movie: Movie): Promise<ChunkRecord[]> {
   const chunks: ChunkRecord[] = [];
 
   // =============================================================
-  // PLACEHOLDER: Add your code for each step below.
+  // PLACEHOLDER ID: dense-embeddings-extract
+  // NOTE: Add your code for each step below.
   // ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
   //
   // STEP 1: Assert that the movie has a plot and overview
@@ -49,7 +50,8 @@ async function extractChunksForMovie(movie: Movie): Promise<ChunkRecord[]> {
  */
 async function upsertChunksToPinecone(chunks: ChunkRecord[]): Promise<void> {
   // =============================================================
-  // PLACEHOLDER: Add your code for each step below.
+  // PLACEHOLDER ID: dense-embeddings-upsert
+  // NOTE: Add your code for each step below.
   // ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
   //
   // STEP 1: Upsert chunks into the Pinecone index
