@@ -159,13 +159,19 @@ export default defineEventHandler(async (event) => {
 
     if (insight.dateRange) {
       // Convert ISO date strings to timestamps for Pinecone numeric filtering
-      const startTimestamp = new Date(insight.dateRange.start).getTime();
-      const endTimestamp = new Date(insight.dateRange.end).getTime();
+      const startTimestamp = dateToNumber(insight.dateRange.start);
+      const endTimestamp = dateToNumber(insight.dateRange.end);
 
-      metadataFilter.release_date = {
-        $gte: startTimestamp,
-        $lte: endTimestamp,
-      };
+      // Build filter with available timestamps
+      if (startTimestamp || endTimestamp) {
+        metadataFilter.release_date = {};
+        if (startTimestamp) {
+          metadataFilter.release_date.$gte = startTimestamp;
+        }
+        if (endTimestamp) {
+          metadataFilter.release_date.$lte = endTimestamp;
+        }
+      }
     }
 
     // Perform hybrid search using both dense and sparse embeddings

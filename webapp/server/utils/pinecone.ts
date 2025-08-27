@@ -14,7 +14,7 @@ let indexesValidated = false;
 export async function getPineconeClient() {
   // Check environment variables first to update global status
   checkEnvironmentVariables();
-  
+
   if (!pineconeClient) {
     const apiKey = process.env.PINECONE_API_KEY;
     if (!apiKey) {
@@ -67,4 +67,12 @@ async function ensureIndexesExist(pc: Pinecone) {
       waitUntilReady: true,
     });
   }
+}
+
+// Helper function to convert date string to timestamp for Pinecone metadata
+// Pinecone doesn't support Date objects in metadata, so we convert to numbers
+export function dateToNumber(dateString: string): number | undefined {
+  if (!dateString) return undefined;
+  const date = new Date(dateString);
+  return isNaN(date.getTime()) ? undefined : date.getTime();
 }

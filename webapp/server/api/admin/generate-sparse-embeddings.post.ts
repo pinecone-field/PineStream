@@ -9,13 +9,6 @@ const adminService = new AdminService();
   message: "",
 };
 
-// Helper function to convert date string to timestamp
-function dateToTimestamp(dateString: string): number | undefined {
-  if (!dateString) return undefined;
-  const date = new Date(dateString);
-  return isNaN(date.getTime()) ? undefined : date.getTime();
-}
-
 // Function to extract chunks for a single movie
 async function extractChunksForMovie(movie: Movie): Promise<any[]> {
   const chunks: any[] = [];
@@ -38,7 +31,7 @@ async function extractChunksForMovie(movie: Movie): Promise<any[]> {
     : [];
 
   // Convert release_date string to numeric timestamp
-  const releaseTimestamp = dateToTimestamp(movie.release_date ?? "");
+  const releaseTimestamp = dateToNumber(movie.release_date ?? "");
 
   // Create a record for plot text if available
   if (plotText.trim()) {

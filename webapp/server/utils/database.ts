@@ -378,7 +378,7 @@ export class AdminService {
   }
 
   // Batch insert chunk mappings for better performance
-  insertChunkMappingsBatch(chunkMappings: ChunkMapping[]): void {
+  saveChunkToMovieMappings(chunkMappings: ChunkMapping[]): void {
     if (chunkMappings.length === 0) return;
 
     // Use a transaction for better performance and atomicity

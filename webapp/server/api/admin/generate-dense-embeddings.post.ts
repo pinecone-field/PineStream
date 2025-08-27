@@ -9,13 +9,6 @@ const adminService = new AdminService();
   message: "",
 };
 
-// Helper function to convert date string to timestamp
-function dateToTimestamp(dateString: string): number | undefined {
-  if (!dateString) return undefined;
-  const date = new Date(dateString);
-  return isNaN(date.getTime()) ? undefined : date.getTime();
-}
-
 // Function to extract chunks for a single movie
 async function extractChunksForMovie(movie: Movie): Promise<ChunkRecord[]> {
   const chunks: ChunkRecord[] = [];
