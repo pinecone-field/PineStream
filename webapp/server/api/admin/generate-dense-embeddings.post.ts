@@ -120,19 +120,11 @@ async function upsertChunksToPinecone(chunks: ChunkRecord[]): Promise<void> {
 }
 
 export default defineEventHandler(async (event) => {
-  if (event.method !== "POST") {
-    throw createError({
-      statusCode: 405,
-      statusMessage: "Method not allowed",
-    });
-  }
-
   // Check if required APIs are available
   if (!isPineconeAvailable) {
     return {
       error: "API_UNAVAILABLE",
-      message:
-        "Embedding generation is not available. Please configure your Pinecone API key.",
+      message: "Embedding generation is not available.",
       status: "unavailable",
     };
   }
