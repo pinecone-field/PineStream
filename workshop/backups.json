@@ -1,42 +1,42 @@
 {
   "similar-movies-retrieval": {
     "content": "  //\n  // STEP 1: Prepare search text and metadata filters\n  //\n  //\n  // STEP 2: Search the sparse index for similar chunks\n  //\n  //\n  // STEP 3: Extract the highest scored movies from the search results\n  //\n  //\n  // STEP 6: Get the top 10 movies from the database\n  //\n\n  return []; // DELETE THIS LINE\n\n  //",
-    "timestamp": "2025-08-27T20:56:13.871Z"
+    "timestamp": "2025-08-27T21:43:58.235Z"
   },
   "similar-movies-generation": {
     "content": "\n  return batch.map(\n    () => `Similar to ${currentMovie.title} in genre and style.`\n  );\n",
-    "timestamp": "2025-08-27T20:56:13.872Z"
+    "timestamp": "2025-08-27T21:43:58.235Z"
   },
   "semantic-search-vector": {
     "content": "  //\n  //",
-    "timestamp": "2025-08-27T20:56:13.873Z"
+    "timestamp": "2025-08-27T21:43:58.235Z"
   },
   "semantic-search-rerank": {
     "content": "  //\n  //",
-    "timestamp": "2025-08-27T20:56:13.873Z"
+    "timestamp": "2025-08-27T21:43:58.236Z"
   },
   "semantic-search-insight": {
     "content": "  //\n  //",
-    "timestamp": "2025-08-27T20:56:13.874Z"
+    "timestamp": "2025-08-27T21:43:58.236Z"
   },
   "dense-embeddings-extract": {
     "content": "  //\n  // STEP 1: Assert that the movie has a plot and overview\n  //\n  //\n  // STEP 2: Create chunks from the plot text if available\n  //\n  //\n  // STEP 3: Create chunks from the overview text if available\n  //\n  //",
-    "timestamp": "2025-08-27T20:56:13.875Z"
+    "timestamp": "2025-08-27T21:43:58.236Z"
   },
   "dense-embeddings-upsert": {
     "content": "  //\n  // STEP 1: Upsert chunks into the Pinecone index\n  //\n  //\n  // STEP 2: Store the mappings of chunks to movies in the database after successful upsert\n  //\n  //",
-    "timestamp": "2025-08-27T20:56:13.875Z"
+    "timestamp": "2025-08-27T21:43:58.237Z"
   },
   "sparse-embeddings-extract": {
     "content": "  //\n  // STEP 1: Assert that the movie has a plot and overview\n  //\n  //\n  // STEP 2: Create chunks from the plot text if available\n  //\n  //\n  // STEP 3: Create chunks from the overview text if available\n  //",
-    "timestamp": "2025-08-27T20:56:13.875Z"
+    "timestamp": "2025-08-27T21:43:58.237Z"
   },
   "sparse-embeddings-upsert": {
     "content": "  //\n  //",
-    "timestamp": "2025-08-27T20:56:13.876Z"
+    "timestamp": "2025-08-27T21:43:58.237Z"
   },
   "user-recommendations": {
     "content": "    //\n    //\n    // STEP 1: Find the watched movies and their chunk IDs\n    //\n    //\n    // STEP 2: Get the embeddings of the chunks of the watched movies\n    //\n    //\n    // STEP 3: Create a centroid from the embeddings of the watched movies\n    //\n    //\n    // STEP 4: Search for similar chunks using the centroid, excluding watched movies\n    //\n    //\n    // STEP 5: Extract the highest scored movies from the search results\n    //\n    //",
-    "timestamp": "2025-08-27T20:56:13.876Z"
+    "timestamp": "2025-08-27T21:43:58.237Z"
   }
 }

@@ -189,10 +189,15 @@ function replacePlaceholder(content, solutionId, solutionContent) {
     return null;
   }
 
-  // Create backup before replacing
-  if (!createBackup(content, solutionId)) {
-    console.error(`❌ Could not create backup for ${solutionId}`);
-    return null;
+  // Only create backup if one doesn't already exist
+  if (!backupData[solutionId] || backupData[solutionId].content === undefined) {
+    if (!createBackup(content, solutionId)) {
+      console.error(`❌ Could not create backup for ${solutionId}`);
+      return null;
+    }
+    console.log(`💾 Created backup for ${solutionId}`);
+  } else {
+    console.log(`💾 Using existing backup for ${solutionId}`);
   }
 
   const lines = content.split("\n");
@@ -435,6 +440,27 @@ function restoreAll() {
 // Create backups of current state
 function createBackups() {
   console.log("💾 Creating backups of current workshop state...\n");
+
+  // Check if backups already exist
+  const existingBackups = Object.keys(backupData).filter(
+    (id) => backupData[id] && backupData[id].content !== undefined
+  );
+
+  if (existingBackups.length > 0) {
+    console.log(
+      "⚠️  WARNING: Existing backups found for the following solutions:"
+    );
+    existingBackups.forEach((id) => {
+      const timestamp = backupData[id].timestamp || "unknown";
+      console.log(`   - ${id} (created: ${timestamp})`);
+    });
+    console.log(
+      "\n   Creating new backups will overwrite these existing backups.\n"
+    );
+  } else {
+    console.log("ℹ️  No existing backups found. Creating fresh backups.\n");
+  }
+
   console.log(
     "⚠️  WARNING: This will create backups of the current state of all workshop files."
   );
@@ -487,7 +513,7 @@ function createBackups() {
       console.log(
         `📊 Summary: ${backupCount}/${totalCount} backups created successfully`
       );
-      console.log(`💾 Backups saved to: ${BACKUP_FILE}`);
+      console.log(`💾 Backups saved to: ${resolvePath(BACKUP_FILE)}`);
     }
   );
 }
@@ -521,8 +547,8 @@ Examples:
   node solve.js help
 
 Backup System:
-  - Automatically creates backups when applying solutions
-  - Use 'backup' command to manually create backups
+  - Creates backups only once per solution (won't overwrite existing backups)
+  - Use 'backup' command to manually create/overwrite backups
   - Backups are stored in: ${resolvePath(BACKUP_FILE)}
 `);
 }
