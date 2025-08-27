@@ -76,3 +76,13 @@ export function dateToNumber(dateString: string): number | undefined {
   const date = new Date(dateString);
   return isNaN(date.getTime()) ? undefined : date.getTime();
 }
+
+// Helper function to convert comma-separated string to array
+// Commonly used for converting genre strings to arrays for Pinecone metadata
+export function csvToArray(csvString: string | undefined | null): string[] {
+  if (!csvString) return [];
+  return csvString
+    .split(",")
+    .map((item) => item.trim().toLowerCase())
+    .filter((item) => item.length > 0);
+}
