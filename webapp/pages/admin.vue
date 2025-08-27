@@ -59,7 +59,7 @@
             v-if="
               isPineconeAvailable &&
               denseProgress &&
-              denseProgress.isGenerating &&
+              denseProgress.isRunning &&
               denseProgress.total > 0
             "
             class="mt-4"
@@ -139,7 +139,7 @@
             v-if="
               isPineconeAvailable &&
               sparseProgress &&
-              sparseProgress.isGenerating &&
+              sparseProgress.isRunning &&
               sparseProgress.total > 0
             "
             class="mt-4"
@@ -251,7 +251,7 @@ import { ref } from "vue";
 
 // Default progress state for SSR safety
 const defaultProgress = {
-  isGenerating: false,
+  isRunning: false,
   processed: 0,
   total: 0,
   startTime: 0,
@@ -310,7 +310,7 @@ const formatTimeRemaining = (seconds) => {
 };
 
 const calculateTimeRemaining = (progressInfo) => {
-  if (!progressInfo.isGenerating || progressInfo.processed === 0) return 0;
+  if (!progressInfo.isRunning || progressInfo.processed === 0) return 0;
 
   const elapsed = (Date.now() - progressInfo.startTime) / 1000;
 
@@ -325,91 +325,95 @@ const calculateTimeRemaining = (progressInfo) => {
 
 // Single polling for both progress updates
 let progressInterval = null;
+let lastSuccessfulPoll = Date.now();
+const POLLING_TIMEOUT = 10000; // 10 seconds timeout
 
 const startProgressPolling = () => {
   if (progressInterval) clearInterval(progressInterval);
 
+  // Reset the timeout when starting polling
+  lastSuccessfulPoll = Date.now();
+
   progressInterval = setInterval(async () => {
+    // Check if we've exceeded the timeout before making the request
+    const timeSinceLastSuccess = Date.now() - lastSuccessfulPoll;
+    if (timeSinceLastSuccess > POLLING_TIMEOUT) {
+      console.warn(
+        `Polling timeout exceeded (${POLLING_TIMEOUT}ms), stopping polling`
+      );
+      stopProgressPolling();
+      return;
+    }
+
     try {
       const response = await $fetch("/api/admin/progress");
 
-      // Handle dense progress
+      // Update last successful poll time
+      lastSuccessfulPoll = Date.now();
+
+      // Handle dense progress - simple direct mapping
       const denseProgressData = response.dense;
-      if (denseProgressData.isRunning) {
-        // Update dense progress state
-        denseProgress.value = {
-          isGenerating: true,
-          processed: denseProgressData.processed,
-          total: denseProgressData.total,
-          startTime: denseProgressData.startTime,
-        };
-      } else if (denseProgress.value.isGenerating) {
-        // Dense generation completed
-        denseProgress.value = {
-          isGenerating: false,
-          processed: denseProgressData.processed,
-          total: denseProgressData.total,
-          startTime: denseProgressData.startTime,
-        };
+      denseProgress.value = {
+        isRunning: denseProgressData.isRunning,
+        processed: denseProgressData.processed,
+        total: denseProgressData.total,
+        startTime: denseProgressData.startTime,
+      };
 
-        if (denseProgressData.message) {
-          denseResult.value = denseProgressData.message;
-          // Calculate processing time from startTime
-          const processingTime = (
-            (Date.now() - denseProgressData.startTime) /
-            1000
-          ).toFixed(1);
-          denseCompletedTime.value = `${processingTime}s`;
-        }
-
+      // If dense generation just completed, show result
+      if (!denseProgressData.isRunning && denseProgressData.message) {
+        denseResult.value = denseProgressData.message;
+        const processingTime = (
+          (Date.now() - denseProgressData.startTime) /
+          1000
+        ).toFixed(1);
+        denseCompletedTime.value = `${processingTime}s`;
         isGeneratingDense.value = false;
         await loadDatabaseStats();
       }
 
-      // Handle sparse progress
+      // Handle sparse progress - simple direct mapping
       const sparseProgressData = response.sparse;
-      if (sparseProgressData.isRunning) {
-        // Update sparse progress state
-        sparseProgress.value = {
-          isGenerating: true,
-          processed: sparseProgressData.processed,
-          total: sparseProgressData.total,
-          startTime: sparseProgressData.startTime,
-        };
-      } else if (sparseProgress.value.isGenerating) {
-        // Sparse generation completed
-        sparseProgress.value = {
-          isGenerating: false,
-          processed: sparseProgressData.processed,
-          total: sparseProgressData.total,
-          startTime: sparseProgressData.startTime,
-        };
+      sparseProgress.value = {
+        isRunning: sparseProgressData.isRunning,
+        processed: sparseProgressData.processed,
+        total: sparseProgressData.total,
+        startTime: sparseProgressData.startTime,
+      };
 
-        if (sparseProgressData.message) {
-          sparseResult.value = sparseProgressData.message;
-          // Calculate processing time from startTime
-          const processingTime = (
-            (Date.now() - sparseProgressData.startTime) /
-            1000
-          ).toFixed(1);
-          sparseCompletedTime.value = `${processingTime}s`;
-        }
-
+      // If sparse generation just completed, show result
+      if (!sparseProgressData.isRunning && sparseProgressData.message) {
+        sparseResult.value = sparseProgressData.message;
+        const processingTime = (
+          (Date.now() - sparseProgressData.startTime) /
+          1000
+        ).toFixed(1);
+        sparseCompletedTime.value = `${processingTime}s`;
         isGeneratingSparse.value = false;
         await loadDatabaseStats();
       }
 
       // Stop polling if neither is running
-      if (
-        !denseProgressData.isRunning &&
-        !sparseProgressData.isRunning &&
-        !denseProgress.value.isGenerating &&
-        !sparseProgress.value.isGenerating
-      ) {
+      if (!denseProgressData.isRunning && !sparseProgressData.isRunning) {
         stopProgressPolling();
       }
     } catch (error) {
       console.error("Error polling progress:", error);
+
+      // Check if we've exceeded the timeout
+      const timeSinceLastSuccess = Date.now() - lastSuccessfulPoll;
+      if (timeSinceLastSuccess > POLLING_TIMEOUT) {
+        console.warn(
+          `Polling timeout exceeded (${POLLING_TIMEOUT}ms), stopping polling`
+        );
+        stopProgressPolling();
+      }
+
+      // On error, assume nothing is running
+      denseProgress.value.isRunning = false;
+      sparseProgress.value.isRunning = false;
+      isGeneratingDense.value = false;
+      isGeneratingSparse.value = false;
     }
   }, 1000); // Poll every second
 };
