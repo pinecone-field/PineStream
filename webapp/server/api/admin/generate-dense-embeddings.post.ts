@@ -9,107 +9,57 @@ const adminService = new AdminService();
   message: "",
 };
 
-// Function to extract chunks for a single movie
+/**
+ * The endpoint calls this function passing a movie
+ * to extract chunks from the movie's plot and overview.
+ *
+ * The function is expected to
+ *  - Extract chunks from the movie's plot and overview
+ *  - Return an array of chunks
+ */
 async function extractChunksForMovie(movie: Movie): Promise<ChunkRecord[]> {
   const chunks: ChunkRecord[] = [];
 
-  // Get both plot and overview text
-  const plotText = movie.plot || "";
-  const overviewText = movie.overview || "";
-
-  // Skip movies with no plot AND no overview
-  if (!plotText.trim() && !overviewText.trim()) {
-    return chunks;
-  }
-
-  // Convert genre string to array of strings
-  const genreArray = movie.genre
-    ? movie.genre
-        .split(",")
-        .map((g: string) => g.trim().toLowerCase())
-        .filter((g: string) => g.length > 0)
-    : [];
-
-  // Convert release_date string to numeric timestamp
-  const releaseTimestamp = dateToTimestamp(movie.release_date ?? "");
-
-  // Process plot text if available
-  if (plotText.trim()) {
-    const plotChunks = await splitText(plotText);
-
-    // Create a record for each plot chunk
-    for (let chunkIndex = 0; chunkIndex < plotChunks.length; chunkIndex++) {
-      const chunk = plotChunks[chunkIndex];
-      const chunkId = `${movie.id}_plot_chunk_${chunkIndex}`;
-
-      chunks.push({
-        id: chunkId,
-        text: chunk,
-        title: movie.title || "Unknown Title",
-        genre: genreArray,
-        movieId: movie.id,
-        chunkIndex: chunkIndex,
-        totalChunks: plotChunks.length,
-        source: "plot",
-        ...(releaseTimestamp && { releaseDate: releaseTimestamp }),
-      });
-    }
-  }
-
-  // Process overview text if available
-  if (overviewText.trim()) {
-    const overviewChunks = await splitText(overviewText);
-
-    // Create a record for each overview chunk
-    for (let chunkIndex = 0; chunkIndex < overviewChunks.length; chunkIndex++) {
-      const chunk = overviewChunks[chunkIndex];
-      const chunkId = `${movie.id}_overview_chunk_${chunkIndex}`;
-
-      chunks.push({
-        id: chunkId,
-        text: chunk,
-        title: movie.title || "Unknown Title",
-        genre: genreArray,
-        movieId: movie.id,
-        chunkIndex: chunkIndex,
-        totalChunks: overviewChunks.length,
-        source: "overview",
-        ...(releaseTimestamp && { releaseDate: releaseTimestamp }),
-      });
-    }
-  }
+  // =============================================================
+  // PLACEHOLDER: Add your code for each step below.
+  // ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
+  //
+  // STEP 1: Assert that the movie has a plot and overview
+  //
+  //
+  // STEP 2: Create chunks from the plot text if available
+  //
+  //
+  // STEP 3: Create chunks from the overview text if available
+  //
+  //
+  // ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
+  // =============================================================
 
   return chunks;
 }
 
-// Function to upsert a batch of chunks to Pinecone
+/**
+ * The endpoint calls this function passing some chunks
+ * to upsert into the Pinecone index.
+ *
+ * The function is expected to
+ *  - Upsert chunks into the Pinecone index
+ *  - Store the mappings of chunks to movies in the database after successful upsert
+ */
 async function upsertChunksToPinecone(chunks: ChunkRecord[]): Promise<void> {
-  const pc = await getPineconeClient();
-  const index = pc.index(PINECONE_INDEXES.MOVIES_DENSE);
-
-  // Convert to Pinecone format for batch upsert
-  const pineconeBatch = chunks.map((record) => ({
-    id: record.id,
-    text: record.text,
-    title: record.title,
-    genre: record.genre,
-    movie_id: record.movieId,
-    chunk_index: record.chunkIndex,
-    total_chunks: record.totalChunks,
-    source: record.source,
-    ...(record.releaseDate && { release_date: record.releaseDate }),
-  }));
-  await index.upsertRecords(pineconeBatch);
-
-  // Store chunk mappings after successful Pinecone upsert
-  const chunkMappings: ChunkMapping[] = chunks.map((record) => ({
-    id: record.id,
-    movieId: record.movieId,
-    chunkIndex: record.chunkIndex,
-    totalChunks: record.totalChunks,
-    source: record.source,
-  }));
-  adminService.insertChunkMappingsBatch(chunkMappings);
+  // =============================================================
+  // PLACEHOLDER: Add your code for each step below.
+  // ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
+  //
+  // STEP 1: Upsert chunks into the Pinecone index
+  //
+  //
+  // STEP 2: Store the mappings of chunks to movies in the database after successful upsert
+  //
+  //
+  // ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
+  // =============================================================
 }
 
 export default defineEventHandler(async (event) => {
@@ -168,58 +118,60 @@ export default defineEventHandler(async (event) => {
 
     for (const movie of movies) {
       try {
-        // Extract chunks for this movie using the new function
+        // Extract chunks for the current movie
         const movieChunks = await extractChunksForMovie(movie);
 
-        // Add chunks to current batch
-        for (const chunk of movieChunks) {
-          currentBatch.push(chunk);
+        // If the current movie has chunks, proceed to upsert them
+        if (movieChunks.length > 0) {
+          // Add extracted chunks to the current batch
+          for (const chunk of movieChunks) {
+            currentBatch.push(chunk);
 
-          // If batch is full, start processing it in parallel
-          if (currentBatch.length >= maxChunksPerBatch) {
-            const batchToProcess = [...currentBatch];
-            const currentBatchCount = batchCount + 1;
+            // If the current batch is full, start processing it in parallel
+            if (currentBatch.length >= maxChunksPerBatch) {
+              const batchToProcess = [...currentBatch];
+              const currentBatchCount = batchCount + 1;
 
-            // Create a promise for this batch
-            const batchPromise = (async () => {
-              try {
-                // Process the entire batch at once using Pinecone's batch upsert
-                await upsertChunksToPinecone(batchToProcess);
-                totalChunks += batchToProcess.length;
+              // Create a promise for the current batch
+              const batchPromise = (async () => {
+                try {
+                  // Process the entire batch at once using Pinecone's batch upsert
+                  await upsertChunksToPinecone(batchToProcess);
+                  totalChunks += batchToProcess.length;
 
-                // Add delay after successful batch to respect rate limits
-                await delay(1000); // 1 second delay between batches
-              } catch (error) {
-                console.error(
-                  `Error processing batch ${currentBatchCount}:`,
-                  error
-                );
-                // If we hit rate limits, wait longer
-                if (
-                  error &&
-                  typeof error === "object" &&
-                  "status" in error &&
-                  error.status === 429
-                ) {
-                  await delay(5000);
+                  // Add delay after successful batch to respect rate limits
+                  await delay(1000); // 1 second delay between batches
+                } catch (error) {
+                  console.error(
+                    `Error processing batch ${currentBatchCount}:`,
+                    error
+                  );
+                  // If we hit rate limits, wait longer
+                  if (
+                    error &&
+                    typeof error === "object" &&
+                    "status" in error &&
+                    error.status === 429
+                  ) {
+                    await delay(5000);
+                  }
                 }
+              })();
+
+              pendingBatches.push(batchPromise);
+              batchCount++;
+              currentBatch = [];
+
+              // If we have too many pending batches, wait for one to complete
+              if (pendingBatches.length >= maxConcurrentBatches) {
+                await Promise.race(pendingBatches);
+                // Clean up by removing the first promise (simplified approach)
+                pendingBatches.shift();
               }
-            })();
-
-            pendingBatches.push(batchPromise);
-            batchCount++;
-            currentBatch = [];
-
-            // If we have too many pending batches, wait for one to complete
-            if (pendingBatches.length >= maxConcurrentBatches) {
-              await Promise.race(pendingBatches);
-              // Clean up by removing the first promise (simplified approach)
-              pendingBatches.shift();
             }
           }
+          processedCount++;
         }
-
-        processedCount++;
 
         // Update global progress
         (global as any).denseProgress.processed = processedCount;

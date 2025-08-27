@@ -1,3 +1,169 @@
+## Dense Embedding Generation
+
+### Extract chunks from the movie's plot and overview
+
+- STEP 1: Assert that the movie has a plot and overview
+
+```ts
+const plotText = movie.plot || "";
+const overviewText = movie.overview || "";
+if (!plotText.trim() && !overviewText.trim()) {
+  return chunks;
+}
+```
+
+- STEP 2: Create chunks from the plot text if available
+
+```ts
+if (plotText.trim()) {
+  const plotChunks = await splitText(plotText);
+
+  // Create a record for each plot chunk
+  for (let chunkIndex = 0; chunkIndex < plotChunks.length; chunkIndex++) {
+    const chunk = plotChunks[chunkIndex];
+    const chunkId = `${movie.id}_plot_chunk_${chunkIndex}`;
+
+    chunks.push({
+      id: chunkId,
+      text: chunk,
+      title: movie.title || "Unknown Title",
+      genre: csvToArray(movie.genre),
+      movieId: movie.id,
+      chunkIndex: chunkIndex,
+      totalChunks: plotChunks.length,
+      source: "plot",
+      ...(movie.release_date && {
+        release_date: dateToNumber(movie.release_date),
+      }),
+    });
+  }
+}
+```
+
+- STEP 3: Create chunks from the overview text if available
+
+```ts
+if (overviewText.trim()) {
+  const overviewChunks = await splitText(overviewText);
+
+  // Create a record for each overview chunk
+  for (let chunkIndex = 0; chunkIndex < overviewChunks.length; chunkIndex++) {
+    const chunk = overviewChunks[chunkIndex];
+    const chunkId = `${movie.id}_overview_chunk_${chunkIndex}`;
+
+    chunks.push({
+      id: chunkId,
+      text: chunk,
+      title: movie.title || "Unknown Title",
+      genre: genreArray,
+      movieId: movie.id,
+      chunkIndex: chunkIndex,
+      totalChunks: overviewChunks.length,
+      source: "overview",
+      ...(releaseTimestamp && { releaseDate: releaseTimestamp }),
+    });
+  }
+}
+```
+
+### Upsert chunks into the Pinecone index
+
+- STEP 1: Upsert chunks into the Pinecone index
+
+```ts
+// Get Pinecone client and index
+const pc = await getPineconeClient();
+const index = pc.index(PINECONE_INDEXES.MOVIES_DENSE);
+
+// Convert to Pinecone format for batch upsert
+const pineconeBatch = chunks.map((chunk) => ({
+  id: chunk.id,
+  text: chunk.text,
+  title: chunk.title,
+  genre: chunk.genre,
+  movie_id: chunk.movieId,
+  chunk_index: chunk.chunkIndex,
+  total_chunks: chunk.totalChunks,
+  source: chunk.source,
+  ...(chunk.releaseDate && { release_date: chunk.releaseDate }),
+}));
+
+// Upsert chunks into the Pinecone index
+await index.upsertRecords(pineconeBatch);
+```
+
+- STEP 2: Store the mappings of chunks to movies in the database after successful upsert
+
+```ts
+const chunkToMovieMappings: ChunkMapping[] = chunks.map((chunk) => ({
+  id: chunk.id,
+  movieId: chunk.movieId,
+  chunkIndex: chunk.chunkIndex,
+  totalChunks: chunk.totalChunks,
+  source: chunk.source,
+}));
+adminService.saveChunkToMovieMappings(chunkToMovieMappings);
+```
+
+## Sparse Embedding Generation
+
+### Extract chunks from the movie's plot and overview
+
+- STEP 1: Assert that the movie has a plot and overview
+
+```ts
+// Get both plot and overview text
+const plotText = movie.plot || "";
+const overviewText = movie.overview || "";
+if (!plotText.trim() && !overviewText.trim()) {
+  return chunks;
+}
+```
+
+- STEP 2: Create chunks from the plot text if available
+
+```ts
+if (plotText.trim()) {
+  chunks.push({
+    id: `${movie.id}_plot`,
+    text: plotText,
+    title: movie.title,
+    genre: csvToArray(movie.genre),
+    movie_id: movie.id,
+    source: "plot",
+    ...(movie.release_date && {
+      release_date: dateToNumber(movie.release_date),
+    }),
+  });
+}
+```
+
+- STEP 3: Create chunks from the overview text if available
+
+```ts
+if (overviewText.trim()) {
+  chunks.push({
+    id: `${movie.id}_overview`,
+    text: overviewText,
+    title: movie.title,
+    genre: csvToArray(movie.genre),
+    movie_id: movie.id,
+    source: "overview",
+    ...(movie.release_date && {
+      release_date: dateToNumber(movie.release_date),
+    }),
+  });
+}
+```
+
+### Upsert chunks into the Pinecone index
+
+```ts
+const pc = await getPineconeClient();
+const index = pc.index(PINECONE_INDEXES.MOVIES_SPARSE);
+await index.upsertRecords(chunks);
+```
+
 ## Recommendations
 
 - STEP 1: Find the watched movies and their chunk IDs
@@ -305,12 +471,7 @@ const combinedText = [plotText, overviewText]
   .join(" ");
 
 // Extract genres for metadata filtering
-const currentGenres = currentMovie.genre
-  ? currentMovie.genre
-      .split(",")
-      .map((g: string) => g.trim().toLowerCase())
-      .filter((g: string) => g.length > 0)
-  : [];
+const currentGenres = csvToArray(currentMovie.genre);
 ```
 
 - STEP 2: Search the sparse index for similar chunks
