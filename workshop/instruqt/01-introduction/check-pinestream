@@ -1,7 +1,45 @@
+#!/bin/bash
+set -euo pipefail
 
-set -euxo pipefail
+# Check if the environment file exists
+if [ ! -f "/app/webapp/.env" ]; then
+    fail-message "Environment file /app/webapp/.env not found"
+    exit 1
+fi
 
-echo "FAIL: Test check 1"
-echo "FAIL: Test check 2 "
+# Source the environment file to get the API keys
+source /app/webapp/.env
 
-exit 1
+# Check if PINECONE_API_KEY exists and is not empty
+if [ -z "${PINECONE_API_KEY:-}" ]; then
+    fail-message "PINECONE_API_KEY not found in environment file"
+    exit 1
+fi
+
+# Check if GROQ_API_KEY exists and is not empty
+if [ -z "${GROQ_API_KEY:-}" ]; then
+    fail-message "GROQ_API_KEY not found in environment file"
+    exit 1
+fi
+
+# Validate Pinecone API key by making a test request to list indexes
+echo "Validating Pinecone API key..."
+HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -H "Api-Key: $PINECONE_API_KEY" \
+    -H "X-Pinecone-API-Version: 2025-04" \
+    "https://api.pinecone.io/indexes")
+if [ "$HTTP_STATUS" != "200" ]; then
+    fail-message "Failed to validate Pinecone API key (HTTP status: $HTTP_STATUS)"
+    exit 1
+fi
+
+# Validate Groq API key by making a test request
+echo "Validating Groq API key..."
+HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -H "Authorization: Bearer $GROQ_API_KEY" \
+    "https://api.groq.com/openai/v1/models")
+if [ "$HTTP_STATUS" != "200" ]; then
+    fail-message "Failed to validate Groq API key (HTTP status: $HTTP_STATUS)"
+    exit 1
+fi
+
+echo "All API keys validated successfully!"
+exit 0
