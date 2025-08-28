@@ -1,0 +1,7 @@
+#success-message "Some of tests are failing. Run them from VSCode to see what needs fixing."
+
+
+echo "OK: Test check OK"
+echo "SUCCESS: Test check success "
+
+exit 0

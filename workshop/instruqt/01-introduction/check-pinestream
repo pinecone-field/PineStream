@@ -1,0 +1,7 @@
+
+set -euxo pipefail
+
+echo "FAIL: Test check 1"
+echo "FAIL: Test check 2 "
+
+exit 1

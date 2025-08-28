@@ -1,0 +1,30 @@
+slug: pinestream
+id: 6vygxz05larp
+title: PineStream Workshop
+teaser: Implement AI-powered features like vector search and LLM integration for a
+  sample movie streaming platform
+description: |-
+  Add semantic search, recommendations and RAG features into PineStream - a sample movie streaming platform.
+
+  You will create dense and sparse embeddings, and implement hybrid retrieval with metadata filters
+  and re-ranking. You will add a features to find similar movies and provide centroid-based recommendations.
+  You will also add a lightweight LLM step for query understanding and RAG.
+icon: ./assets/logo.png
+tags: []
+owner: pinecone
+developers:
+- milen@pinecone.io
+maintenance: true
+show_timer: true
+idle_timeout: 1800
+timelimit: 18000
+lab_config:
+  sidebar_enabled: true
+  feedback_recap_enabled: true
+  feedback_tab_enabled: false
+  loadingMessages:
+  - We are now preparing this workshop for you. We appreciate your patience!
+  override_challenge_layout: false
+  hideStopButton: false
+checksum: "11484981966670574872"
+enhanced_loading: false
