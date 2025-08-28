@@ -72,6 +72,13 @@ RUN mkdir -p /container-scripts
 # Create code-server directories with proper permissions
 RUN mkdir -p /home/coder/.local/share/code-server/extensions \
     && mkdir -p /home/coder/.local/share/code-server/user-data \
+    && mkdir -p /home/coder/.local/share/code-server/user-data/User \
+    && echo '{' > /home/coder/.local/share/code-server/user-data/User/settings.json \
+    && echo '  "security.workspace.trust.enabled": false,' >> /home/coder/.local/share/code-server/user-data/User/settings.json \
+    && echo '  "git.openRepositoryInParentFolders": false,' >> /home/coder/.local/share/code-server/user-data/User/settings.json \
+    && echo '  "git.confirmSync": false,' >> /home/coder/.local/share/code-server/user-data/User/settings.json \
+    && echo '  "git.promptToSaveFilesBeforeCommit": false' >> /home/coder/.local/share/code-server/user-data/User/settings.json \
+    && echo '}' >> /home/coder/.local/share/code-server/user-data/User/settings.json \
     && chown -R coder:coder /home/coder/.local
 
 # Copy pre-installed dependencies from builder stage
@@ -92,34 +99,34 @@ ENV NUXT_TELEMETRY_DISABLED=1
 
 # Create startup script
 RUN echo '#!/bin/bash\n\
-echo "🚀 Starting PineStream workshop environment"\n\
-\n\
-echo "📥 Cloning repository from GitHub..."\n\
-echo "Repository: $GITHUB_REPO"\n\
-echo "Branch: ${GITHUB_BRANCH:-main}"\n\
-\n\
-# Clean up existing directory and clone fresh\n\
-echo "🧹 Cleaning up existing directory..."\n\
-rm -rf /app\n\
-\n\
-# Clone the repository to /app\n\
-echo "📥 Cloning repository..."\n\
-git clone -b ${GITHUB_BRANCH:-main} $GITHUB_REPO /app\n\
-\n\
-# Copy pre-installed dependencies from container image to fresh repo\n\
-echo "📦 Restoring pre-installed dependencies..."\n\
-cp -r /container-scripts/deps/package.json /app/webapp/\n\
-cp -r /container-scripts/deps/pnpm-lock.yaml /app/webapp/\n\
-\n\
-# Use pnpm store to restore dependencies (faster than full install)\n\
-echo "📦 Restoring dependencies from pnpm store..."\n\
-cd /app/webapp\n\
-pnpm install --frozen-lockfile --offline\n\
-\n\
-echo "🌐 Starting code-server with webapp folder..."\n\
-cd /app\n\
-exec code-server --bind-addr 0.0.0.0:8080 --auth none --user-data-dir /home/coder/.local/share/code-server/user-data --extensions-dir /home/coder/.local/share/code-server/extensions .\n\
-' > /container-scripts/start.sh && chmod +x /container-scripts/start.sh
+    echo "🚀 Starting PineStream workshop environment"\n\
+    \n\
+    echo "📥 Cloning repository from GitHub..."\n\
+    echo "Repository: $GITHUB_REPO"\n\
+    echo "Branch: ${GITHUB_BRANCH:-main}"\n\
+    \n\
+    # Clean up existing directory and clone fresh\n\
+    echo "🧹 Cleaning up existing directory..."\n\
+    rm -rf /app\n\
+    \n\
+    # Clone the repository to /app\n\
+    echo "📥 Cloning repository..."\n\
+    git clone -b ${GITHUB_BRANCH:-main} $GITHUB_REPO /app\n\
+    \n\
+    # Copy pre-installed dependencies from container image to fresh repo\n\
+    echo "📦 Restoring pre-installed dependencies..."\n\
+    cp -r /container-scripts/deps/package.json /app/webapp/\n\
+    cp -r /container-scripts/deps/pnpm-lock.yaml /app/webapp/\n\
+    \n\
+    # Use pnpm store to restore dependencies (faster than full install)\n\
+    echo "📦 Restoring dependencies from pnpm store..."\n\
+    cd /app/webapp\n\
+    pnpm install --frozen-lockfile --offline\n\
+    \n\
+    echo "🌐 Starting code-server with webapp folder..."\n\
+    cd /app/webapp\n\
+    exec code-server --bind-addr 0.0.0.0:8080 --auth none --user-data-dir /home/coder/.local/share/code-server/user-data --extensions-dir /home/coder/.local/share/code-server/extensions .\n\
+    ' > /container-scripts/start.sh && chmod +x /container-scripts/start.sh
 
 # Default command
 CMD ["/container-scripts/start.sh"]
