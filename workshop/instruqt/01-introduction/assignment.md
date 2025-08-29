@@ -7,11 +7,19 @@ teaser: This challenge introduces you to PineStream - the sample movie streaming
   you'll be extending. It also helps you set up your development environment.
 notes:
 - type: text
-  contents: "# ![logo.png](../assets/logo.png) Welcome to PineStream Workshop!\n\nIn
-    this workshop, you'll add AI-powered features to a sample movie streaming platform.\n\nYou
-    will go through the following challenges:\n\n- Setup & Introduction  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\U0001F448
-    ***you're here!***\n- Embeddings Generation\n- User Recommendations\n- Semantic
-    Search Implementation\n- Query Expansion\n- Similar Movies (RAG Pipeline)\n"
+  contents: |
+    # ![logo.png](../assets/logo.png) Welcome to PineStream Workshop!
+
+    In this workshop, you'll add AI-powered features to a sample movie streaming platform.
+
+    You will go through the following challenges:
+
+    - Setup & Introduction  &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#128072; ***you're here!***
+    - Embeddings Generation
+    - User Recommendations
+    - Semantic Search Implementation
+    - Query Expansion
+    - Similar Movies (RAG Pipeline)
 - type: text
   contents: |
     # Setup & Introduction

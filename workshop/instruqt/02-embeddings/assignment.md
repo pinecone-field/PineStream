@@ -4,15 +4,22 @@ id: 1dol09tt0gjx
 type: challenge
 title: Generating embeddings
 teaser: This challenge teaches you about dense vs sparse embeddings and how to generate
-  them for movie content
+ them for movie content
 notes:
 - type: text
-  contents: "# ![logo.png](../assets/logo.png) Welcome to PineStream Workshop!\n\nIn
-    this workshop, you'll add AI-powered features to a sample movie streaming platform.\n\nYou
-    will go through the following challenges:\n\n- Setup & Introduction\n- Embeddings
-    Generation &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;\U0001F448 ***you're here!***\n-
-    User Recommendations\n- Semantic Search Implementation\n- Query Expansion\n- Similar
-    Movies (RAG Pipeline)- type: text\n"
+  contents: |
+    # ![logo.png](../assets/logo.png) Welcome to PineStream Workshop!
+
+   In this workshop, you'll add AI-powered features to a sample movie streaming platform.
+
+   You will go through the following challenges:
+
+   - Setup & Introduction
+   - Embeddings Generation &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#128072; ***you're here!***
+   - User Recommendations
+   - Semantic Search Implementation
+   - Query Expansion
+   - Similar Movies (RAG Pipeline)
 - type: text
   contents: |
     # Embedding Fundamentals & Generation
