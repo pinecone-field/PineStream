@@ -1,7 +1,104 @@
-#success-message "Some of tests are failing. Run them from VSCode to see what needs fixing."
+#!/bin/bash
+set -euo pipefail
 
+# Check if the stats API is accessible and both indexes have data
+echo "Checking Pinecone indexes via stats API..."
 
-echo "OK: Test check OK"
-echo "SUCCESS: Test check success "
+# Check if the application is accessible
+echo "Checking if application is accessible..."
 
+# Make a request to the stats API
+echo "Connecting to stats API at http://localhost:3000..."
+
+# Temporarily disable exit on error to catch curl failures
+set +e
+STATS_RESPONSE=$(curl -s --connect-timeout 10 "http://localhost:3000/api/admin/stats")
+CURL_EXIT_CODE=$?
+set -e
+
+if [ $CURL_EXIT_CODE -ne 0 ]; then
+    fail-message "Could not check your changes. Make sure the application is running!"
+    exit 1
+fi
+
+if [ -z "$STATS_RESPONSE" ]; then
+    fail-message "Could not check your changes. Make sure the application is running!"
+    exit 1
+fi
+
+echo "Successfully connected to stats API"
+
+# Check if the response contains the expected fields
+if ! echo "$STATS_RESPONSE" | grep -q "denseEmbeddings"; then
+    fail-message "Unexpected response from stats API."
+    exit 1
+fi
+
+if ! echo "$STATS_RESPONSE" | grep -q "sparseEmbeddings"; then
+    fail-message "Unexpected response from stats API."
+    exit 1
+fi
+
+# Extract the embedding counts using grep/sed
+DENSE_COUNT=$(echo "$STATS_RESPONSE" | grep -o -P '"denseEmbeddings"\:\s?[0-9]+' | sed 's/.*://' | tr -d '\n')
+SPARSE_COUNT=$(echo "$STATS_RESPONSE" | grep -o -P '"sparseEmbeddings"\:\s?[0-9]+' | sed 's/.*://' | tr -d '\n')
+
+# Handle cases where grep might not find a match (empty response)
+if [ -z "$DENSE_COUNT" ]; then
+    DENSE_COUNT="0"
+fi
+
+if [ -z "$SPARSE_COUNT" ]; then
+    SPARSE_COUNT="0"
+fi
+
+# Check if dense embeddings index is not empty
+if [ "$DENSE_COUNT" -eq 0 ] || [ -z "$DENSE_COUNT" ]; then
+    fail-message "Dense embeddings index is empty (count: $DENSE_COUNT)"
+    exit 1
+fi
+
+# Check if sparse embeddings index is not empty
+if [ "$SPARSE_COUNT" -eq 0 ] || [ -z "$SPARSE_COUNT" ]; then
+    fail-message "Sparse embeddings index is empty (count: $SPARSE_COUNT)"
+    exit 1
+fi
+
+echo "Dense embeddings count: $DENSE_COUNT"
+echo "Sparse embeddings count: $SPARSE_COUNT"
+
+# Check database chunk mappings match dense embeddings count
+echo "Checking database chunk mappings..."
+
+# Source the environment file to get the database path
+if [ -f "/app/webapp/.env" ]; then
+    source /app/webapp/.env
+    DB_FILE="${DATABASE_FILE:-movies.db}"
+else
+    fail-message "Environment file /app/webapp/.env not found"
+    exit 1
+fi
+
+# Check if database file exists
+if [ ! -f "/app/webapp/$DB_FILE" ]; then
+    fail-message "Database file /app/webapp/$DB_FILE not found"
+    exit 1
+fi
+
+# Get chunk mappings count from database
+DB_CHUNK_COUNT=$(sqlite3 "/app/webapp/$DB_FILE" "SELECT COUNT(*) FROM chunk_mappings;" 2>/dev/null)
+
+if [ $? -ne 0 ]; then
+    fail-message "Failed to query chunk_mappings table from database"
+    exit 1
+fi
+
+# Check if chunk mappings count matches dense embeddings count
+if [ "$DB_CHUNK_COUNT" -ne "$DENSE_COUNT" ]; then
+    fail-message "Database chunk mappings count ($DB_CHUNK_COUNT) does not match dense embeddings count ($DENSE_COUNT)"
+    exit 1
+fi
+
+echo "Database chunk mappings count: $DB_CHUNK_COUNT"
+echo "All indexes and database are properly synchronized!"
 exit 0

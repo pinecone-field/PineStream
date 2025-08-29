@@ -1,0 +1,386 @@
+#!/bin/bash
+set -euo pipefail
+
+echo "Solving the embeddings challenge..."
+
+# Navigate to the workshop directory where solve.js is located
+cd /app/workshop
+
+# Apply all the embeddings-related solutions
+echo "Applying dense embeddings extract solution..."
+node solve.js dense-embeddings-extract
+
+echo "Applying dense embeddings upsert solution..."
+node solve.js dense-embeddings-upsert
+
+echo "Applying sparse embeddings extract solution..."
+node solve.js sparse-embeddings-extract
+
+echo "Applying sparse embeddings upsert solution..."
+node solve.js sparse-embeddings-upsert
+
+echo "All embeddings solutions have been applied!"
+
+# Ensure the application is running before proceeding
+echo "Checking if the application is running..."
+echo "Attempting to connect to http://localhost:3000..."
+
+# Debug: Check basic connectivity
+echo "Testing basic connectivity..."
+if ping -c 1 localhost > /dev/null 2>&1; then
+    echo "✅ localhost is reachable"
+else
+    echo "⚠️  localhost ping failed"
+fi
+
+echo "Testing if port 3000 is listening..."
+if netstat -tuln 2>/dev/null | grep -q ":3000 "; then
+    echo "✅ Port 3000 is listening"
+else
+    echo "⚠️  Port 3000 is not listening"
+fi
+
+echo "Testing basic HTTP connection..."
+set +e
+BASIC_CURL=$(curl -s --connect-timeout 3 "http://localhost:3000" 2>&1)
+BASIC_CURL_EXIT=$?
+set -e
+
+if [ $BASIC_CURL_EXIT -eq 0 ]; then
+    echo "✅ Basic HTTP connection successful"
+elif [ $BASIC_CURL_EXIT -eq 7 ]; then
+    echo "❌ Connection refused - nothing listening on port 3000"
+elif [ $BASIC_CURL_EXIT -eq 28 ]; then
+    echo "❌ Connection timeout"
+else
+    echo "❌ HTTP connection failed with exit code: $BASIC_CURL_EXIT"
+fi
+
+# Wait for the application to be accessible
+MAX_WAIT_TIME=10
+WAIT_COUNT=0
+APP_STARTED_BY_SCRIPT=false
+
+while [ $WAIT_COUNT -lt $MAX_WAIT_TIME ]; do
+    # Temporarily disable exit on error to catch curl failures
+    set +e
+    RESPONSE=$(curl -s --connect-timeout 5 "http://localhost:3000/api/admin/stats")
+    CURL_EXIT_CODE=$?
+    set -e
+    
+    if [ $CURL_EXIT_CODE -eq 0 ] && [ -n "$RESPONSE" ] && ! echo "$RESPONSE" | grep -q "<!DOCTYPE html>"; then
+        echo "✅ Application is already running and accessible!"
+        break
+    else
+        if [ $CURL_EXIT_CODE -eq 7 ]; then
+            echo "⏳ Waiting for application to start... (${WAIT_COUNT}s/${MAX_WAIT_TIME}s) - Connection refused"
+        else
+            echo "⏳ Waiting for application to start... (${WAIT_COUNT}s/${MAX_WAIT_TIME}s) - curl exit code: $CURL_EXIT_CODE"
+        fi
+        sleep 1
+        WAIT_COUNT=$((WAIT_COUNT + 1))
+    fi
+done
+
+# If application is not running, start it
+if [ $WAIT_COUNT -ge $MAX_WAIT_TIME ]; then
+    echo "🔄 Application is not running. Starting it now..."
+    
+    # Navigate to webapp directory and start the application
+    cd /app/webapp
+    
+    # Start the application in the background
+    echo "Starting Nuxt application..."
+    
+    # Temporarily disable exit on error for the startup process
+    set +e
+    
+    # Check if pnpm is available
+    if ! command -v pnpm >/dev/null 2>&1; then
+        echo "❌ pnpm is not available, trying npm instead..."
+        nohup npm run dev > /tmp/nuxt.log 2>&1 &
+    else
+        nohup pnpm dev > /tmp/nuxt.log 2>&1 &
+    fi
+    
+    NUXT_PID=$!
+    STARTUP_EXIT_CODE=$?
+    
+    # Re-enable error handling
+    set -e
+    
+    if [ $STARTUP_EXIT_CODE -ne 0 ]; then
+        echo "❌ Failed to start Nuxt application (exit code: $STARTUP_EXIT_CODE)"
+        echo "Check the logs at /tmp/nuxt.log for errors"
+        echo "Last few lines of the log:"
+        tail -10 /tmp/nuxt.log 2>/dev/null || echo "Could not read log file"
+        exit 1
+    fi
+    
+    echo "Nuxt process started with PID: $NUXT_PID"
+    
+    # Verify the process is actually running
+    sleep 2
+    if ! kill -0 $NUXT_PID 2>/dev/null; then
+        echo "❌ Nuxt process (PID: $NUXT_PID) is not running"
+        echo "Check the logs at /tmp/nuxt.log for errors:"
+        tail -20 /tmp/nuxt.log 2>/dev/null || echo "Could not read log file"
+        exit 1
+    fi
+    
+    echo "✅ Nuxt process is running"
+    
+    # Wait for the application to start
+    echo "Waiting for application to start..."
+    START_WAIT_COUNT=0
+    MAX_START_WAIT=30
+    
+    while [ $START_WAIT_COUNT -lt $MAX_START_WAIT ]; do
+        # Temporarily disable exit on error for curl
+        set +e
+        RESPONSE=$(curl -s --connect-timeout 5 "http://localhost:3000/api/admin/stats")
+        CURL_EXIT_CODE=$?
+        set -e
+        
+        if [ $CURL_EXIT_CODE -eq 0 ] && [ -n "$RESPONSE" ] && ! echo "$RESPONSE" | grep -q "<!DOCTYPE html>"; then
+            echo "✅ Application started successfully!"
+            APP_STARTED_BY_SCRIPT=true
+            break
+        else
+            if [ $CURL_EXIT_CODE -eq 7 ]; then
+                echo "⏳ Waiting for application to start... (${START_WAIT_COUNT}s/${MAX_START_WAIT}s) - Connection refused"
+            else
+                echo "⏳ Waiting for application to start... (${START_WAIT_COUNT}s/${MAX_START_WAIT}s) - curl exit code: $CURL_EXIT_CODE"
+            fi
+            sleep 2
+            START_WAIT_COUNT=$((START_WAIT_COUNT + 2))
+        fi
+    done
+    
+    if [ $START_WAIT_COUNT -ge $MAX_START_WAIT ]; then
+        echo "❌ Failed to start application within ${MAX_START_WAIT} seconds"
+        echo "Check the logs at /tmp/nuxt.log for errors"
+        exit 1
+    fi
+    
+    # Go back to workshop directory
+    cd /app/workshop
+fi
+
+# Now generate the actual embeddings in parallel
+echo "Starting both dense and sparse embeddings generation in parallel..."
+echo "This may take several minutes depending on your data size..."
+
+# Double-check that the APIs are ready before proceeding
+echo "Verifying that the embedding generation APIs are ready..."
+API_READY_COUNT=0
+MAX_API_WAIT=30
+
+while [ $API_READY_COUNT -lt $MAX_API_WAIT ]; do
+    # Test the dense embeddings endpoint
+    DENSE_TEST=$(curl -s -X POST "http://localhost:3000/api/admin/generate-dense-embeddings")
+    if [ $? -eq 0 ] && [ -n "$DENSE_TEST" ] && ! echo "$DENSE_TEST" | grep -q "<!DOCTYPE html>"; then
+        echo "✅ Embedding generation APIs are ready!"
+        break
+    else
+        echo "⏳ Waiting for APIs to be ready... (${API_READY_COUNT}s/${MAX_API_WAIT}s)"
+        sleep 2
+        API_READY_COUNT=$((API_READY_COUNT + 2))
+    fi
+done
+
+if [ $API_READY_COUNT -ge $MAX_API_WAIT ]; then
+    echo "❌ Embedding generation APIs did not become ready within ${MAX_API_WAIT} seconds"
+    echo "The application may still be starting up. Please try again later."
+    exit 1
+fi
+
+# Start both embeddings generation processes in background
+echo "Starting dense embeddings generation in background..."
+set +e
+curl -s -X POST "http://localhost:3000/api/admin/generate-dense-embeddings" > /tmp/dense_response.json 2>&1 &
+DENSE_PID=$!
+set -e
+
+echo "Starting sparse embeddings generation in background..."
+set +e
+curl -s -X POST "http://localhost:3000/api/admin/generate-sparse-embeddings" > /tmp/sparse_response.json 2>&1 &
+SPARSE_PID=$!
+set -e
+
+echo "✅ Both processes started in background"
+echo "Dense embeddings PID: $DENSE_PID"
+echo "Sparse embeddings PID: $DENSE_PID"
+
+# Wait a moment for processes to start
+sleep 2
+
+# Check if both processes are still running
+if ! kill -0 $DENSE_PID 2>/dev/null; then
+    echo "❌ Dense embeddings process failed to start"
+    echo "Dense response: $(cat /tmp/dense_response.json 2>/dev/null || echo 'No response file')"
+    exit 1
+fi
+
+if ! kill -0 $SPARSE_PID 2>/dev/null; then
+    echo "❌ Sparse embeddings process failed to start"
+    echo "Sparse response: $(cat /tmp/sparse_response.json 2>/dev/null || echo 'No response file')"
+    exit 1
+fi
+
+echo "✅ Both background processes are running"
+
+echo "Both processes started. Monitoring progress..."
+echo "Debug: About to check initial progress..."
+
+# Debug: Show initial progress
+echo "Checking initial progress..."
+set +e
+INITIAL_PROGRESS=$(curl -s "http://localhost:3000/api/admin/progress")
+CURL_EXIT_CODE=$?
+set -e
+
+if [ $CURL_EXIT_CODE -ne 0 ]; then
+    echo "❌ Failed to get initial progress (curl exit code: $CURL_EXIT_CODE)"
+    exit 1
+fi
+
+echo "Initial progress response: $INITIAL_PROGRESS"
+echo "Debug: Successfully got progress response, length: ${#INITIAL_PROGRESS}"
+
+# Parse initial status to see if both are already completed
+echo "Parsing initial status..."
+set +e  # Temporarily disable exit on error for parsing
+
+# Use more robust parsing with sed
+DENSE_INIT_IS_RUNNING=$(echo "$INITIAL_PROGRESS" | sed -n '/"dense":/,/}/p' | grep '"isRunning"' | sed 's/.*"isRunning":\s*\([^,]*\).*/\1/')
+DENSE_INIT_PROCESSED=$(echo "$INITIAL_PROGRESS" | sed -n '/"dense":/,/}/p' | grep '"processed"' | sed 's/.*"processed":\s*\([0-9]*\).*/\1/')
+DENSE_INIT_TOTAL=$(echo "$INITIAL_PROGRESS" | sed -n '/"dense":/,/}/p' | grep '"total"' | sed 's/.*"total":\s*\([0-9]*\).*/\1/')
+
+SPARSE_INIT_IS_RUNNING=$(echo "$INITIAL_PROGRESS" | sed -n '/"sparse":/,/}/p' | grep '"isRunning"' | sed 's/.*"isRunning":\s*\([^,]*\).*/\1/')
+SPARSE_INIT_PROCESSED=$(echo "$INITIAL_PROGRESS" | sed -n '/"sparse":/,/}/p' | grep '"processed"' | sed 's/.*"processed":\s*\([0-9]*\).*/\1/')
+SPARSE_INIT_TOTAL=$(echo "$INITIAL_PROGRESS" | sed -n '/"sparse":/,/}/p' | grep '"total"' | sed 's/.*"total":\s*\([0-9]*\).*/\1/')
+
+set -e  # Re-enable error handling
+
+echo "Dense: isRunning='$DENSE_INIT_IS_RUNNING', processed='$DENSE_INIT_PROCESSED', total='$DENSE_INIT_TOTAL'"
+echo "Sparse: isRunning='$SPARSE_INIT_IS_RUNNING', processed='$SPARSE_INIT_PROCESSED', total='$SPARSE_INIT_TOTAL'"
+
+# Check if both processes are already running
+if [ "$DENSE_INIT_IS_RUNNING" = "true" ] && [ "$SPARSE_INIT_IS_RUNNING" = "true" ]; then
+    echo "✅ Both processes are already running and processing data!"
+    echo "Continuing to monitor progress..."
+elif [ "$DENSE_INIT_IS_RUNNING" = "true" ]; then
+    echo "✅ Dense embeddings are running, waiting for sparse to start..."
+elif [ "$SPARSE_INIT_IS_RUNNING" = "true" ]; then
+    echo "✅ Sparse embeddings are running, waiting for dense to start..."
+else
+    echo "⚠️  Neither process appears to be running yet, continuing to monitor..."
+fi
+
+# Monitor both processes in parallel
+DENSE_COMPLETED=false
+SPARSE_COMPLETED=false
+
+echo "Monitoring both background processes..."
+echo "This will show real-time progress as both processes run simultaneously."
+
+while [ "$DENSE_COMPLETED" = false ] || [ "$SPARSE_COMPLETED" = false ]; do
+    # Temporarily disable exit on error to catch curl failures
+    set +e
+    PROGRESS_RESPONSE=$(curl -s "http://localhost:3000/api/admin/progress")
+    PROGRESS_EXIT_CODE=$?
+    set -e
+    
+    if [ $PROGRESS_EXIT_CODE -eq 0 ]; then
+        # Check dense embeddings progress based on actual API response structure
+        if [ "$DENSE_COMPLETED" = false ]; then
+            # Check if dense embeddings are completed based on isRunning and processed vs total
+            DENSE_IS_RUNNING=$(echo "$PROGRESS_RESPONSE" | sed -n '/"dense":/,/}/p' | grep '"isRunning"' | sed 's/.*"isRunning":\s*\([^,]*\).*/\1/')
+            DENSE_PROCESSED=$(echo "$PROGRESS_RESPONSE" | sed -n '/"dense":/,/}/p' | grep '"processed"' | sed 's/.*"processed":\s*\([0-9]*\).*/\1/')
+            DENSE_TOTAL=$(echo "$PROGRESS_RESPONSE" | sed -n '/"dense":/,/}/p' | grep '"total"' | sed 's/.*"total":\s*\([0-9]*\).*/\1/')
+            
+            if [ "$DENSE_IS_RUNNING" = "false" ] && [ -n "$DENSE_PROCESSED" ] && [ -n "$DENSE_TOTAL" ] && [ "$DENSE_PROCESSED" -eq "$DENSE_TOTAL" ]; then
+                echo "✅ Dense embeddings generation completed! ($DENSE_PROCESSED/$DENSE_TOTAL)"
+                DENSE_COMPLETED=true
+            else
+                if [ "$DENSE_IS_RUNNING" = "true" ]; then
+                    echo "🔄 Dense embeddings in progress... ($DENSE_PROCESSED/$DENSE_TOTAL)"
+                else
+                    echo "⏳ Dense embeddings waiting... ($DENSE_PROCESSED/$DENSE_TOTAL)"
+                fi
+            fi
+        fi
+        
+        # Check sparse embeddings progress based on actual API response structure
+        if [ "$SPARSE_COMPLETED" = false ]; then
+            # Check if sparse embeddings are completed based on isRunning and processed vs total
+            SPARSE_IS_RUNNING=$(echo "$PROGRESS_RESPONSE" | sed -n '/"sparse":/,/}/p' | grep '"isRunning"' | sed 's/.*"isRunning":\s*\([^,]*\).*/\1/')
+            SPARSE_PROCESSED=$(echo "$PROGRESS_RESPONSE" | sed -n '/"sparse":/,/}/p' | grep '"processed"' | sed 's/.*"processed":\s*\([0-9]*\).*/\1/')
+            SPARSE_TOTAL=$(echo "$PROGRESS_RESPONSE" | sed -n '/"sparse":/,/}/p' | grep '"total"' | sed 's/.*"total":\s*\([0-9]*\).*/\1/')
+            
+            if [ "$SPARSE_IS_RUNNING" = "false" ] && [ -n "$SPARSE_PROCESSED" ] && [ -n "$SPARSE_TOTAL" ] && [ "$SPARSE_PROCESSED" -eq "$SPARSE_TOTAL" ]; then
+                echo "✅ Sparse embeddings generation completed! ($SPARSE_PROCESSED/$SPARSE_TOTAL)"
+                SPARSE_COMPLETED=true
+            else
+                if [ "$SPARSE_IS_RUNNING" = "true" ]; then
+                    echo "🔄 Sparse embeddings in progress... ($SPARSE_PROCESSED/$SPARSE_TOTAL)"
+                else
+                    echo "⏳ Sparse embeddings waiting... ($SPARSE_PROCESSED/$SPARSE_TOTAL)"
+                fi
+            fi
+        fi
+        
+        # Show combined status
+        if [ "$DENSE_COMPLETED" = true ] && [ "$SPARSE_COMPLETED" = true ]; then
+            echo ""
+            echo "🎉 All embeddings have been generated successfully!"
+            break
+        fi
+        
+        echo "---"
+        sleep 5  # Check more frequently for better real-time updates
+    else
+        echo "⚠️  Failed to check progress, retrying..."
+        sleep 5
+    fi
+done
+
+echo "You can now run the check-pinestream script to verify your implementation."
+
+# Cleanup: Stop the application if we started it
+cleanup() {
+    if [ "$APP_STARTED_BY_SCRIPT" = true ]; then
+        echo ""
+        echo "🧹 Cleaning up: Stopping application that was started by this script..."
+        
+        # Try to stop the application gracefully
+        if [ -n "$NUXT_PID" ]; then
+            echo "Stopping Nuxt process (PID: $NUXT_PID)..."
+            kill $NUXT_PID 2>/dev/null || true
+            
+            # Wait a bit for graceful shutdown
+            sleep 3
+            
+            # Force kill if still running
+            if kill -0 $NUXT_PID 2>/dev/null; then
+                echo "Force stopping Nuxt process..."
+                kill -9 $NUXT_PID 2>/dev/null || true
+            fi
+        fi
+        
+        echo "✅ Application stopped successfully"
+    else
+        echo ""
+        echo "ℹ️  Application was already running, leaving it running"
+    fi
+}
+
+# Set up trap to ensure cleanup runs on exit
+trap cleanup EXIT
+
+echo ""
+echo "🎉 Challenge completed successfully!"
+echo "The application will be automatically stopped if it was started by this script."
+echo "If it was already running, it will remain running."
+exit 0

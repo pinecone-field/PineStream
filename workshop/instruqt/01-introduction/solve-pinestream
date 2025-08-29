@@ -1,0 +1,53 @@
+#!/bin/bash
+set -euo pipefail
+
+echo "Setting up environment for the embeddings challenge..."
+
+# Navigate to the webapp directory
+cd /app/webapp
+
+# Copy .example.env to .env if it doesn't exist
+if [ ! -f ".env" ]; then
+    echo "Copying .example.env to .env..."
+    cp .example.env .env
+    echo "✅ Environment file created"
+else
+    echo "✅ Environment file already exists"
+fi
+
+# Update PINECONE_API_KEY in .env file
+if [ -n "${PINECONE_API_KEY:-}" ]; then
+    echo "Updating PINECONE_API_KEY in .env..."
+    if grep -q "PINECONE_API_KEY=" .env; then
+        # Replace existing line
+        sed -i "s/^PINECONE_API_KEY=.*/PINECONE_API_KEY=$PINECONE_API_KEY/" .env
+    else
+        # Add new line
+        echo "PINECONE_API_KEY=$PINECONE_API_KEY" >> .env
+    fi
+    echo "✅ PINECONE_API_KEY updated"
+else
+    echo "⚠️  PINECONE_API_KEY environment variable not set"
+fi
+
+# Update GROQ_API_KEY in .env file
+if [ -n "${GROQ_API_KEY:-}" ]; then
+    echo "Updating GROQ_API_KEY in .env..."
+    if grep -q "GROQ_API_KEY=" .env; then
+        # Replace existing line
+        sed -i "s/^GROQ_API_KEY=.*/GROQ_API_KEY=$GROQ_API_KEY/" .env
+    else
+        # Add new line
+        echo "GROQ_API_KEY=$GROQ_API_KEY" >> .env
+    fi
+    echo "✅ GROQ_API_KEY updated"
+else
+    echo "⚠️  GROQ_API_KEY environment variable not set"
+fi
+
+# Verify the environment file
+echo ""
+echo "Environment file contents:"
+echo "=========================="
+grep -E "^(PINECONE_API_KEY|GROQ_API_KEY)=" .env || echo "No API keys found in .env"
+
