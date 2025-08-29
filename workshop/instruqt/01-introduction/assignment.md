@@ -48,7 +48,7 @@ In this challenge, you will:
 - Familiarize yourself with the requirements for the new features
 - Configure your own API keys for the external tools we need
 
-# 🎬 What is PineStream?
+# 🎬 &nbsp; What is PineStream?
 ===
 
 PineStream is a movie streaming platform that you'll enhance with AI-powered features. It currently has basic functionality such as:
@@ -58,11 +58,31 @@ PineStream is a movie streaming platform that you'll enhance with AI-powered fea
 - showing movie details
 - marking movies as watched
 
-It's a Nuxt-based web application, but **you don't need to understand how it works.**
+## About the source code
 
-The places where you'll implement the given logic in the code are clearly marked and surrounded by comments explaining what the application expects.
+This is a `Nuxt` web application, using `Vue.js` framework for the frontend, `TypeScript` as programming language, `Tailwind CSS` for styling, and `pnpm` as package manager. **Don't worry, you don't need to know anything about those technologies to complete the workshop!**
 
-# 🚀 Build and Run the Existing Application
+The places where you'll implement the new features are isolated and clearly marked in the code like this:
+
+```nocopy
+ // =============================================================
+ // PLACEHOLDER ID: ...
+ // NOTE: Add your code for each step below.
+ // ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
+ //
+ // STEP 1: ...
+ //
+ // ...
+ //
+ // STEP N: ...
+ //
+ // ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
+ // =============================================================
+```
+
+The instructions will guide you to a particular file and function where you'll implement the given feature. Make sure to read the comments before the placeholder. They explain what the application expects your implementation to do.
+
+# 🚀 &nbsp; Build and Run the Existing Application
 ===
 
 To build and run (in developer mode) the existing application, you need to go to the [Terminal](tab-1) and run the following code
@@ -86,7 +106,7 @@ When you see a message `ℹ Vite server warmed up in ____ms `, the application i
 >
 > They will try to open the app in your browser. However, the browser doesn't have direct access to the application running inside the workshop environment.
 
-# 👀 Explore the application
+# 👀 &nbsp; What You'll Be Building
 ===
 
 Explore the PineStream application (in the [PineStream tab](tab-2)) and notice the following.
@@ -102,7 +122,7 @@ To implement those functionalities, you'll need two external services:
 - A Vector Database - **you'll use Pinecone** to store and query vectors
 - An LLM - **you'll use Groq** to interact with LLMs like "llama-3.1-8b"
 
-# 🪪 Provide Pinecone and Groq API keys
+# 🪪 &nbsp; Provide Pinecone and Groq API keys
 ===
 
 To implement the new functionalities, you'll need to use two external services:
@@ -153,7 +173,7 @@ GROQ_API_KEY=your-groq-api-key-here
 
 Replace `your-groq-api-key-here` with the API key you got from Groq.
 
-# 🛠️ Other configuration
+# 🛠️ &nbsp; Other configuration
 ===
 
 Notice the `.env` file has some other configuration.
@@ -188,10 +208,10 @@ The application uses two Pinecone indexes:
 - `movies-dense` - for dense vectors
 - `movies-sparse` - for sparse vectors
 
-The next challenges will provide more information about those. At this point, you need to know that you don't have to manually create them.
-The application will do it for you. If you are interested in how it is done, have a look at the `ensureIndexesExist` function in the `server/utils/pinecone.ts` file.
+The following challenges will provide more information about those. At this point, you need to know that you don't have to manually create them.
+The application will do it for you. If you are interested in how it is done, look at the `ensureIndexesExist` function in the `server/utils/pinecone.ts` file.
 
-# ✅ Verify Your Setup
+# ✅ &nbsp; Verify Your Setup
 ===
 
 Go to the [Terminal](tab-1). If the application is still running, stop it by pressing `Ctrl+C`. Then rerun it:
