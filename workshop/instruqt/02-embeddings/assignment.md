@@ -4,32 +4,32 @@ id: 1dol09tt0gjx
 type: challenge
 title: Generating embeddings
 teaser: This challenge teaches you about dense vs sparse embeddings and how to generate
- them for movie content
+  them for movie content
 notes:
 - type: text
   contents: |
     # ![logo.png](../assets/logo.png) Welcome to PineStream Workshop!
 
-   In this workshop, you'll add AI-powered features to a sample movie streaming platform.
+    In this workshop, you'll add AI-powered features to a sample movie streaming platform.
 
-   You will go through the following challenges:
+    You will go through the following challenges:
 
-   - Setup & Introduction
-   - Embeddings Generation &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#128072; ***you're here!***
-   - User Recommendations
-   - Semantic Search Implementation
-   - Query Expansion
-   - Similar Movies (RAG Pipeline)
+    - Setup & Introduction
+    - Embeddings Generation &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#128072; ***you're here!***
+    - User Recommendations
+    - Semantic Search Implementation
+    - Query Expansion
+    - Similar Movies (RAG Pipeline)
 - type: text
   contents: |
     # Embedding Fundamentals & Generation
 
-   In this challenge, you will:
-   - Understand the difference between **dense** and **sparse** embeddings
-   - Implement text chunking strategies for movie content
-   - Generate and store dense embeddings in Pinecone
-   - Generate and store sparse embeddings in Pinecone
-   - Learn how these embeddings enable semantic search and recommendations
+    In this challenge, you will:
+    - Understand the difference between **dense** and **sparse** embeddings
+    - Implement text chunking strategies for movie content
+    - Generate and store dense embeddings in Pinecone
+    - Generate and store sparse embeddings in Pinecone
+    - Learn how these embeddings enable semantic search and recommendations
 tabs:
 - id: wbizcxvzoise
   title: IDE
@@ -395,7 +395,7 @@ That's it! You have now implemented the logic for creating and storing sparse em
 > Again, you didn't have to implement the logic to generate the embeddings. You passed the chunks as texts to Pinecone, and it generated the sparse embeddings for you. This is due to how the index was configured. You can have a look at the `ensureIndexesExist` function in the `server/utils/pinecone.ts` file to see how it tells Pinecone to use the `pinecone-sparse-english-v0` model for sparse embeddings. For more information on configuring the index, see the [Pinecone documentation](https://docs.pinecone.io/guides/index-data/indexing-overview#integrated-embedding).
 
 
-# ✅ &nbsp; Check Your Implementations
+# ✅ &nbsp; Verify Your Implementations Works
 ===
 
 Go to the [PineStream tab](tab-2) and click the `Admin` button in the header.
