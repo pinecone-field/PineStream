@@ -1,0 +1,90 @@
+#!/bin/bash
+set -euo pipefail
+
+echo "Solving the recommendations challenge..."
+# Navigate to the workshop directory where solve.js is located
+cd /app/workshop
+
+node solve.js user-recommendations
+
+# Check if the application is running
+echo "Checking if the application is running..."
+if ! curl -s --connect-timeout 5 "http://localhost:3000/api/admin/stats" > /dev/null 2>&1; then
+    echo "⚠️  Application is not running. Starting it..."
+    cd /app/webapp
+    nohup pnpm dev > /tmp/nuxt.log 2>&1 &
+    NUXT_PID=$!
+    
+    # Wait for the application to start
+    echo "Waiting for application to start..."
+    MAX_WAIT_TIME=30
+    WAIT_COUNT=0
+    while [ $WAIT_COUNT -lt $MAX_WAIT_TIME ]; do
+        if curl -s --connect-timeout 5 "http://localhost:3000/api/admin/stats" > /dev/null 2>&1; then
+            echo "✅ Application is now running"
+            break
+        fi
+        sleep 1
+        WAIT_COUNT=$((WAIT_COUNT + 1))
+    done
+    
+    if [ $WAIT_COUNT -eq $MAX_WAIT_TIME ]; then
+        echo "❌ Failed to start application within $MAX_WAIT_TIME seconds"
+        exit 1
+    fi
+    
+    # Set up cleanup to stop the application when script exits
+    cleanup() {
+        echo "Stopping application..."
+        kill $NUXT_PID 2>/dev/null || true
+    }
+    trap cleanup EXIT
+else
+    echo "✅ Application is already running"
+fi
+
+# Check if there are any watched movies
+echo "Checking for watched movies..."
+WATCHED_RESPONSE=$(curl -s "http://localhost:3000/api/user/watched")
+WATCHED_COUNT=$(echo "$WATCHED_RESPONSE" | grep -o '"watchedCount":\s*[0-9]*' | sed 's/.*"watchedCount":\s*//' || echo "0")
+
+if [ "$WATCHED_COUNT" = "0" ] || [ -z "$WATCHED_COUNT" ]; then
+    echo "⚠️  No watched movies found. Adding a movie as watched..."
+    
+    # Get a random movie to mark as watched
+    RANDOM_MOVIE_RESPONSE=$(curl -s "http://localhost:3000/api/movies/random")
+    MOVIE_ID=$(echo "$RANDOM_MOVIE_RESPONSE" | grep -o '"id":\s*[0-9]*' | sed 's/.*"id":\s*//' | head -1)
+    
+    if [ -n "$MOVIE_ID" ]; then
+        echo "Marking movie ID $MOVIE_ID as watched..."
+        
+        # Mark the movie as watched using the API
+        echo "Debug: Calling POST /api/user/watched with movieId: $MOVIE_ID"
+        MARK_RESPONSE=$(curl -s --connect-timeout 10 --max-time 30 -X POST "http://localhost:3000/api/user/watched" \
+            -H "Content-Type: application/json" \
+            -d "{\"movieId\": $MOVIE_ID}")
+        
+        echo "Debug: MARK_RESPONSE = '$MARK_RESPONSE'"
+        
+        if echo "$MARK_RESPONSE" | grep -q '"message"'; then
+            echo "✅ Successfully marked movie ID $MOVIE_ID as watched"
+            # Small delay to ensure database is updated
+            sleep 1
+        else
+            echo "❌ Failed to mark movie as watched: $MARK_RESPONSE"
+            exit 1
+        fi
+    else
+        echo "❌ Could not get a random movie ID"
+        exit 1
+    fi
+else
+    echo "✅ Found $WATCHED_COUNT watched movies"
+fi
+
+
+
+echo "✅ User recommendations solution has been applied!"
+echo "The recommendations API now has the complete implementation."
+echo "You can now run the check-pinestream script to verify your implementation."
+exit 0

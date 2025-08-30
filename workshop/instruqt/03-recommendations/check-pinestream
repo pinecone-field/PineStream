@@ -1,0 +1,105 @@
+#!/bin/bash
+set -euo pipefail
+
+# Test the recommendations API directly
+echo "Testing the recommendations API..."
+
+# Temporarily disable exit on error to catch curl failures
+set +e
+RECOMMENDATIONS_RESPONSE=$(curl -s -w "%{http_code}" "http://localhost:3000/api/user/recommendations")
+HTTP_STATUS=$(echo "$RECOMMENDATIONS_RESPONSE" | tail -c 4)
+RECOMMENDATIONS_BODY=$(echo "$RECOMMENDATIONS_RESPONSE" | head -c -4)
+CURL_EXIT_CODE=$?
+set -e
+
+if [ $CURL_EXIT_CODE -ne 0 ]; then
+    fail-message "Failed to check recommendations API (curl exit code: $CURL_EXIT_CODE)"
+    exit 1
+fi
+
+# Check HTTP status code
+if [ "$HTTP_STATUS" != "200" ]; then
+    fail-message "Failed to check recommendations API (HTTP status: $HTTP_STATUS)"
+    exit 1
+fi
+
+if [ -z "$RECOMMENDATIONS_BODY" ]; then
+    fail-message "Received empty response body from recommendations API"
+    exit 1
+fi
+
+echo "Recommendations API response: $RECOMMENDATIONS_BODY"
+echo "Debug: Response length: ${#RECOMMENDATIONS_BODY}"
+echo "Debug: First 100 chars: ${RECOMMENDATIONS_BODY:0:100}"
+
+# Check if the response contains recommendations
+if echo "$RECOMMENDATIONS_BODY" | grep -q '"recommendations"'; then
+    echo "✅ Recommendations API is responding correctly"
+else
+    fail-message "Recommendations API response missing 'recommendations' field"
+    exit 1
+fi
+
+# Check if there are actual recommendations (not just empty array)
+echo "Debug: Checking if recommendations array is empty..."
+
+# Find the recommendations line and check if it's empty
+RECOMMENDATIONS_LINE=$(grep '"recommendations":' <<< "$RECOMMENDATIONS_BODY")
+echo "Debug: RECOMMENDATIONS_LINE: $RECOMMENDATIONS_LINE"
+
+# Check if the array is empty using regex
+if [[ "$RECOMMENDATIONS_LINE" =~ \[\s*\] ]]; then
+    RECOMMENDATIONS_COUNT=0
+    echo "Debug: Empty recommendations array detected"
+else
+    RECOMMENDATIONS_COUNT=1
+    echo "Debug: Non-empty recommendations array detected"
+fi
+
+echo "Debug: RECOMMENDATIONS_COUNT = '$RECOMMENDATIONS_COUNT'"
+
+# Get watched count from response
+echo "Debug: Extracting watched count..."
+WATCHED_COUNT_LINE=$(grep '"watchedCount":' <<< "$RECOMMENDATIONS_BODY")
+echo "Debug: WATCHED_COUNT_LINE: $WATCHED_COUNT_LINE"
+
+WATCHED_COUNT=$(echo "$WATCHED_COUNT_LINE" | sed 's/.*"watchedCount":\s*//' | sed 's/,$//')
+echo "Debug: WATCHED_COUNT = '$WATCHED_COUNT'"
+
+if [ "$RECOMMENDATIONS_COUNT" -gt 0 ]; then
+    echo "✅ Recommendations API is returning movie recommendations"
+    echo "Found $RECOMMENDATIONS_COUNT recommendations"
+else
+    echo "⚠️  No movie recommendations found"
+    
+    if [ "$WATCHED_COUNT" = "0" ] || [ -z "$WATCHED_COUNT" ]; then
+        fail-message "No movies marked as watched. Please mark some movies as watched first."
+    else
+        echo "Found $WATCHED_COUNT watched movies, checking database mappings..."
+        
+        # Source .env to get DATABASE_FILE
+        if [ -f "/app/webapp/.env" ]; then
+            source "/app/webapp/.env"
+        fi
+        
+        # Check if chunk_mappings exist in database
+        DB_FILE="${DATABASE_FILE:-movies.db}"
+        DB_PATH="/app/webapp/$DB_FILE"
+        
+        if [ ! -f "$DB_PATH" ]; then
+            fail-message "Database file not found at $DB_PATH"
+        fi
+        
+        MAPPINGS_COUNT=$(sqlite3 "$DB_PATH" "SELECT COUNT(*) FROM chunk_mappings;" 2>/dev/null || echo "0")
+        
+        if [ "$MAPPINGS_COUNT" = "0" ]; then
+            fail-message "No chunk mappings found in database. Please regenerate dense embeddings first."
+        else
+            fail-message "No recommendation foundThe implementation is not working correctly."
+        fi
+    fi
+fi
+
+echo "🎉 Recommendations challenge check completed successfully!"
+echo "The API is working and returning the expected response format."
+exit 0
