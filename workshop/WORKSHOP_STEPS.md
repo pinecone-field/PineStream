@@ -590,7 +590,7 @@ try {
       { role: "system", content: systemPrompt },
       { role: "user", content: prompt },
     ],
-    model: GROQ_MODELS.LLAMA3_1_8B_INSTANT, // which LLM to use
+    model: GROQ_MODELS.LLAMA3_3_70B_VERSATILE, // which LLM to use
     temperature: 0.3,
     max_tokens: 400,
   });

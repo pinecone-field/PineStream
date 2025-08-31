@@ -5,6 +5,7 @@ export const GROQ_MODELS = {
   LLAMA3_8B: "llama3-8b-8192",
   LLAMA3_70B: "llama3-70b-8192",
   LLAMA3_1_8B_INSTANT: "llama-3.1-8b-instant",
+  LLAMA3_3_70B_VERSATILE: "llama-3.3-70b-versatile",
   MIXTRAL_8X7B: "mixtral-8x7b-32768",
   GEMMA2_9B: "gemma2-9b-it",
   COMPOUND_BETA_MINI: "compound-beta",
