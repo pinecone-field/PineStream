@@ -9,6 +9,7 @@ const movieService = new MovieService();
  * The function returns an array of similar movies.
  */
 async function retrieveSimilarMovies(currentMovie: any) {
+  let similarMovies: any[] = [];
   // =============================================================
   // PLACEHOLDER ID: similar-movies-retrieval
   // NOTE: Add your code for each step below.
@@ -25,12 +26,11 @@ async function retrieveSimilarMovies(currentMovie: any) {
   //
   // STEP 6: Get the top 10 movies from the database
   //
-
-  return []; // DELETE THIS LINE
-
   //
   // ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
   // =============================================================
+  return similarMovies;
+
 }
 
 /**
@@ -47,17 +47,19 @@ async function generateSimilarityDescriptions(
   currentMovie: any,
   similarMovies: any[]
 ) {
-  // =============================================================
-  // PLACEHOLDER ID: similar-movies-generation
-  // NOTE: Add your code here. Replace the one below.
-  // ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
 
-  return batch.map(
+  let similarMoviesWithDescriptions = similarMovies.map(
     () => `Similar to ${currentMovie.title} in genre and style.`
   );
-
+  // =============================================================
+  // PLACEHOLDER ID: similar-movies-generation
+  // NOTE: Add your code here.
+  // ↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓↓
+  //
+  //
   // ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
   // =============================================================
+  return similarMoviesWithDescriptions; 
 }
 
 /**

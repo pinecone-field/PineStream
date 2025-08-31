@@ -213,19 +213,18 @@ Now you'll implement the generation phase using Groq LLM to create explanations 
 
 ```ts
 // If Groq API is not available, return generic descriptions
+// If Groq API is not available, return generic descriptions
 if (!isGroqAvailable) {
-  return similarMovies.map(
-    () => `Similar to ${currentMovie.title} in genre and style.`
-  );
+  return similarMoviesWithDescriptions;
 }
 
 // Prepare the base prompt for individual movie comparisons
-const systemPrompt = `You are a movie plot analyzing expert.
-        The user is viewing a web page that displays a movie details and similar movies.
+const systemPrompt = `You are a movie plot analyzing expert. 
+        The user is viewing a web page that displays a movie details and similar movies. 
         You will be given:
       - The title and plot of the a reference movie (the one the page is about)
       - List of similar movies (titles and plots) to compare to the reference movie
-      Your task is to generate one sentence explanation of how each movie in the list
+      Your task is to generate one sentence explanation of how each movie in the list 
       is similar to the reference movie.
       Focus on:
       - Shared themes, plot elements, or character dynamics
@@ -233,9 +232,9 @@ const systemPrompt = `You are a movie plot analyzing expert.
       - Comparable storylines or settings
       - Emotional or narrative similarities
 
-      Explain to the user why the movies are similar (plot, genre, tone, atmosphere, ..).
-      Keep the description to ONE sentence PER LINE.
-      Do not output anything but the sentences.
+      Explain to the user why the movies are similar (plot, genre, tone, atmosphere, ..). 
+      Keep the description to ONE sentence PER LINE. 
+      Do not output anything but the sentences. 
       Do not number the sentences. Do not use bullet points.`;
 
 try {
@@ -267,16 +266,12 @@ try {
     max_tokens: 400,
   });
   const response = completion.choices[0]?.message?.content || "";
-  return response
+  similarMoviesWithDescriptions = response
     .split("\n")
     .filter((line) => line.trim().length > 0)
     .slice(0, similarMovies.length);
 } catch (error) {
   console.error("Error generating similarity descriptions:", error);
-  // Fallback: add generic descriptions if LLM fails
-  return similarMovies.map(
-    () => `Similar to ${currentMovie.title} in genre and style.`
-  );
 }
 ```
 
@@ -394,3 +389,4 @@ The skills you've learned apply to:
 - **Content discovery platforms** that help users find relevant information
 
 You now have the knowledge and skills to build sophisticated AI-powered applications that can understand, search, and recommend content intelligently!
+

@@ -542,9 +542,7 @@ return similarMovies;
 ```ts
 // If Groq API is not available, return generic descriptions
 if (!isGroqAvailable) {
-  return similarMovies.map(
-    () => `Similar to ${currentMovie.title} in genre and style.`
-  );
+  return similarMoviesWithDescriptions;
 }
 
 // Prepare the base prompt for individual movie comparisons
@@ -595,15 +593,11 @@ try {
     max_tokens: 400,
   });
   const response = completion.choices[0]?.message?.content || "";
-  return response
+  similarMoviesWithDescriptions = response
     .split("\n")
     .filter((line) => line.trim().length > 0)
     .slice(0, similarMovies.length);
 } catch (error) {
   console.error("Error generating similarity descriptions:", error);
-  // Fallback: add generic descriptions if LLM fails
-  return similarMovies.map(
-    () => `Similar to ${currentMovie.title} in genre and style.`
-  );
 }
 ```

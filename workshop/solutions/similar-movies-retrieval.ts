@@ -67,8 +67,6 @@ if (topMovieIds.length === 0) {
 }
 
 // Fetch full movie data for the top similar movies
-const similarMovies = movieService.getMoviesByIds(topMovieIds, {
+similarMovies = movieService.getMoviesByIds(topMovieIds, {
   includeWatched: true,
 });
-
-return similarMovies;
