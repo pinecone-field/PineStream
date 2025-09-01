@@ -23,149 +23,15 @@ echo "All embeddings solutions have been applied!"
 
 # Ensure the application is running before proceeding
 echo "Checking if the application is running..."
-echo "Attempting to connect to http://localhost:3000..."
 
-# Debug: Check basic connectivity
-echo "Testing basic connectivity..."
-if ping -c 1 localhost > /dev/null 2>&1; then
-    echo "✅ localhost is reachable"
-else
-    echo "⚠️  localhost ping failed"
+# Simple check if application is accessible
+if ! curl -s --connect-timeout 5 "http://localhost:3000/api/admin/stats" > /dev/null 2>&1; then
+    echo "❌ Application is not running and accessible"
+    echo "Please start the application manually with 'pnpm dev' in the webapp directory"
+    exit 1
 fi
 
-echo "Testing if port 3000 is listening..."
-if netstat -tuln 2>/dev/null | grep -q ":3000 "; then
-    echo "✅ Port 3000 is listening"
-else
-    echo "⚠️  Port 3000 is not listening"
-fi
-
-echo "Testing basic HTTP connection..."
-set +e
-BASIC_CURL=$(curl -s --connect-timeout 3 "http://localhost:3000" 2>&1)
-BASIC_CURL_EXIT=$?
-set -e
-
-if [ $BASIC_CURL_EXIT -eq 0 ]; then
-    echo "✅ Basic HTTP connection successful"
-elif [ $BASIC_CURL_EXIT -eq 7 ]; then
-    echo "❌ Connection refused - nothing listening on port 3000"
-elif [ $BASIC_CURL_EXIT -eq 28 ]; then
-    echo "❌ Connection timeout"
-else
-    echo "❌ HTTP connection failed with exit code: $BASIC_CURL_EXIT"
-fi
-
-# Wait for the application to be accessible
-MAX_WAIT_TIME=10
-WAIT_COUNT=0
-APP_STARTED_BY_SCRIPT=false
-
-while [ $WAIT_COUNT -lt $MAX_WAIT_TIME ]; do
-    # Temporarily disable exit on error to catch curl failures
-    set +e
-    RESPONSE=$(curl -s --connect-timeout 5 "http://localhost:3000/api/admin/stats")
-    CURL_EXIT_CODE=$?
-    set -e
-    
-    if [ $CURL_EXIT_CODE -eq 0 ] && [ -n "$RESPONSE" ] && ! echo "$RESPONSE" | grep -q "<!DOCTYPE html>"; then
-        echo "✅ Application is already running and accessible!"
-        break
-    else
-        if [ $CURL_EXIT_CODE -eq 7 ]; then
-            echo "⏳ Waiting for application to start... (${WAIT_COUNT}s/${MAX_WAIT_TIME}s) - Connection refused"
-        else
-            echo "⏳ Waiting for application to start... (${WAIT_COUNT}s/${MAX_WAIT_TIME}s) - curl exit code: $CURL_EXIT_CODE"
-        fi
-        sleep 1
-        WAIT_COUNT=$((WAIT_COUNT + 1))
-    fi
-done
-
-# If application is not running, start it
-if [ $WAIT_COUNT -ge $MAX_WAIT_TIME ]; then
-    echo "🔄 Application is not running. Starting it now..."
-    
-    # Navigate to webapp directory and start the application
-    cd /app/webapp
-    
-    # Start the application in the background
-    echo "Starting Nuxt application..."
-    
-    # Temporarily disable exit on error for the startup process
-    set +e
-    
-    # Check if pnpm is available
-    if ! command -v pnpm >/dev/null 2>&1; then
-        echo "❌ pnpm is not available, trying npm instead..."
-        nohup npm run dev > /tmp/nuxt.log 2>&1 &
-    else
-        nohup pnpm dev > /tmp/nuxt.log 2>&1 &
-    fi
-    
-    NUXT_PID=$!
-    STARTUP_EXIT_CODE=$?
-    
-    # Re-enable error handling
-    set -e
-    
-    if [ $STARTUP_EXIT_CODE -ne 0 ]; then
-        echo "❌ Failed to start Nuxt application (exit code: $STARTUP_EXIT_CODE)"
-        echo "Check the logs at /tmp/nuxt.log for errors"
-        echo "Last few lines of the log:"
-        tail -10 /tmp/nuxt.log 2>/dev/null || echo "Could not read log file"
-        exit 1
-    fi
-    
-    echo "Nuxt process started with PID: $NUXT_PID"
-    
-    # Verify the process is actually running
-    sleep 2
-    if ! kill -0 $NUXT_PID 2>/dev/null; then
-        echo "❌ Nuxt process (PID: $NUXT_PID) is not running"
-        echo "Check the logs at /tmp/nuxt.log for errors:"
-        tail -20 /tmp/nuxt.log 2>/dev/null || echo "Could not read log file"
-        exit 1
-    fi
-    
-    echo "✅ Nuxt process is running"
-    
-    # Wait for the application to start
-    echo "Waiting for application to start..."
-    START_WAIT_COUNT=0
-    MAX_START_WAIT=30
-    
-    while [ $START_WAIT_COUNT -lt $MAX_START_WAIT ]; do
-        # Temporarily disable exit on error for curl
-        set +e
-        RESPONSE=$(curl -s --connect-timeout 5 "http://localhost:3000/api/admin/stats")
-        CURL_EXIT_CODE=$?
-        set -e
-        
-        if [ $CURL_EXIT_CODE -eq 0 ] && [ -n "$RESPONSE" ] && ! echo "$RESPONSE" | grep -q "<!DOCTYPE html>"; then
-            echo "✅ Application started successfully!"
-            APP_STARTED_BY_SCRIPT=true
-            break
-        else
-            if [ $CURL_EXIT_CODE -eq 7 ]; then
-                echo "⏳ Waiting for application to start... (${START_WAIT_COUNT}s/${MAX_START_WAIT}s) - Connection refused"
-            else
-                echo "⏳ Waiting for application to start... (${START_WAIT_COUNT}s/${MAX_START_WAIT}s) - curl exit code: $CURL_EXIT_CODE"
-            fi
-            sleep 2
-            START_WAIT_COUNT=$((START_WAIT_COUNT + 2))
-        fi
-    done
-    
-    if [ $START_WAIT_COUNT -ge $MAX_START_WAIT ]; then
-        echo "❌ Failed to start application within ${MAX_START_WAIT} seconds"
-        echo "Check the logs at /tmp/nuxt.log for errors"
-        exit 1
-    fi
-    
-    # Go back to workshop directory
-    cd /app/workshop
-fi
+echo "✅ Application is running and accessible!"
 
 # Now generate the actual embeddings in parallel
 echo "Starting both dense and sparse embeddings generation in parallel..."
@@ -210,7 +76,7 @@ set -e
 
 echo "✅ Both processes started in background"
 echo "Dense embeddings PID: $DENSE_PID"
-echo "Sparse embeddings PID: $DENSE_PID"
+echo "Sparse embeddings PID: $SPARSE_PID"
 
 # Wait a moment for processes to start
 sleep 2
@@ -347,40 +213,6 @@ while [ "$DENSE_COMPLETED" = false ] || [ "$SPARSE_COMPLETED" = false ]; do
 done
 
 echo "You can now run the check-pinestream script to verify your implementation."
-
-# Cleanup: Stop the application if we started it
-cleanup() {
-    if [ "$APP_STARTED_BY_SCRIPT" = true ]; then
-        echo ""
-        echo "🧹 Cleaning up: Stopping application that was started by this script..."
-        
-        # Try to stop the application gracefully
-        if [ -n "$NUXT_PID" ]; then
-            echo "Stopping Nuxt process (PID: $NUXT_PID)..."
-            kill $NUXT_PID 2>/dev/null || true
-            
-            # Wait a bit for graceful shutdown
-            sleep 3
-            
-            # Force kill if still running
-            if kill -0 $NUXT_PID 2>/dev/null; then
-                echo "Force stopping Nuxt process..."
-                kill -9 $NUXT_PID 2>/dev/null || true
-            fi
-        fi
-        
-        echo "✅ Application stopped successfully"
-    else
-        echo ""
-        echo "ℹ️  Application was already running, leaving it running"
-    fi
-}
-
-# Set up trap to ensure cleanup runs on exit
-trap cleanup EXIT
-
 echo ""
 echo "🎉 Challenge completed successfully!"
-echo "The application will be automatically stopped if it was started by this script."
-echo "If it was already running, it will remain running."
 exit 0

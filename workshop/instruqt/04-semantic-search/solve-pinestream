@@ -1,0 +1,19 @@
+#!/bin/bash
+set -euo pipefail
+
+echo "Solving the semantic search challenge..."
+
+# Change to workshop directory
+cd /app/workshop
+
+# Apply the required solutions for semantic search
+echo "Applying semantic search vector implementation..."
+node solve.js semantic-search-vector
+
+echo "Applying semantic search rerank implementation..."
+node solve.js semantic-search-rerank
+
+echo "✅ Semantic search challenge solutions applied successfully!"
+echo "The semantic search functionality should now be working."
+echo "You can test it by using the semantic search feature in the PineStream application."
+exit 0

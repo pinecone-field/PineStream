@@ -1,0 +1,17 @@
+#!/bin/bash
+set -euo pipefail
+
+echo "Solving the query expansion challenge..."
+
+# Change to workshop directory
+cd /app/workshop
+
+# Apply the required solution for query expansion
+echo "Applying semantic search insight implementation..."
+node solve.js semantic-search-insight
+
+echo "✅ Query expansion challenge solution applied successfully!"
+echo "The AI-powered query expansion functionality should now be working."
+echo "You can test it by using the enhanced semantic search feature in the PineStream application."
+echo "Try queries like '90s sci-fi movies' or 'recent action movies with strong female leads' to see AI insights."
+exit 0

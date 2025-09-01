@@ -1,0 +1,20 @@
+#!/bin/bash
+set -euo pipefail
+
+echo "Solving the RAG pipeline challenge for similar movies..."
+
+# Change to workshop directory
+cd /app/workshop
+
+# Apply the required solutions for RAG pipeline
+echo "Applying similar movies retrieval implementation..."
+node solve.js similar-movies-retrieval
+
+echo "Applying similar movies generation implementation..."
+node solve.js similar-movies-generation
+
+echo "✅ RAG pipeline challenge solutions applied successfully!"
+echo "The similar movies functionality with AI-generated explanations should now be working."
+echo "You can test it by navigating to any movie detail page and checking the similar movies section."
+echo "Each similar movie should now have an AI-generated explanation of why it's similar."
+exit 0

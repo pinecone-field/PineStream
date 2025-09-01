@@ -1,0 +1,129 @@
+#!/bin/bash
+set -euo pipefail
+
+echo "Testing the RAG pipeline for similar movies..."
+
+# First, get a random movie ID to test with
+echo "Getting a random movie ID to test similar movies..."
+set +e
+RANDOM_MOVIE_RESPONSE=$(curl -s -w "%{http_code}" "http://localhost:3000/api/movies/random")
+HTTP_STATUS=$(echo "$RANDOM_MOVIE_RESPONSE" | tail -c 4)
+RANDOM_MOVIE_BODY=$(echo "$RANDOM_MOVIE_RESPONSE" | head -c -4)
+CURL_EXIT_CODE=$?
+set -e
+
+if [ $CURL_EXIT_CODE -ne 0 ]; then
+    echo "Debug: curl failed with exit code: $CURL_EXIT_CODE"
+    fail-message "Could not connect to movies API. Ensure the application is running."
+    exit 1
+fi
+
+if [ "$HTTP_STATUS" != "200" ]; then
+    echo "Debug: HTTP status code: $HTTP_STATUS"
+    fail-message "Movies API not responding. Ensure the application is running."
+    exit 1
+fi
+
+# Extract movie ID from response
+MOVIE_ID=$(echo "$RANDOM_MOVIE_BODY" | grep -m1 -o '"id":\s*[0-9]*' | sed 's/.*"id":\s*//')
+if [ -z "$MOVIE_ID" ]; then
+    echo "Debug: Could not extract movie ID from response"
+    fail-message "Could not get movie ID. Verify the database is properly loaded."
+    exit 1
+fi
+
+echo "Testing similar movies for movie ID: $MOVIE_ID"
+
+# Now test the similar movies API
+set +e
+SIMILAR_RESPONSE=$(curl -s -w "%{http_code}" --connect-timeout 10 --max-time 30 "http://localhost:3000/api/movies/$MOVIE_ID/similar")
+HTTP_STATUS=$(echo "$SIMILAR_RESPONSE" | tail -c 4)
+SIMILAR_BODY=$(echo "$SIMILAR_RESPONSE" | head -c -4)
+CURL_EXIT_CODE=$?
+set -e
+
+if [ $CURL_EXIT_CODE -ne 0 ]; then
+    echo "Debug: curl failed with exit code: $CURL_EXIT_CODE"
+    fail-message "Could not connect to similar movies API. Ensure the application is running."
+    exit 1
+fi
+
+# Check HTTP status code
+if [ "$HTTP_STATUS" != "200" ]; then
+    echo "Debug: HTTP status code: $HTTP_STATUS"
+    fail-message "Similar movies API not responding. Ensure the application is running."
+    exit 1
+fi
+
+if [ -z "$SIMILAR_BODY" ]; then
+    echo "Debug: Empty response body received"
+    fail-message "Unexpected response structure. Did you make any changes outside the placeholders?"
+    exit 1
+fi
+
+echo "Similar movies API response: $SIMILAR_BODY"
+echo "Debug: Response length: ${#SIMILAR_BODY}"
+echo "Debug: First 100 chars: ${SIMILAR_BODY:0:100}"
+
+# Check if the response contains similar movies
+if echo "$SIMILAR_BODY" | grep -q '"similarMovies"'; then
+    echo "✅ Similar movies API is responding correctly"
+else
+    echo "Debug: Response missing 'similarMovies' field"
+    fail-message "Unexpected response structure. Did you make any changes outside the placeholders?"
+    exit 1
+fi
+
+# Check if there are actual movies returned
+echo "Debug: Checking if movies array contains results..."
+
+# Find the movies line and check if it's empty
+MOVIES_LINE=$(grep '"similarMovies":' <<< "$SIMILAR_BODY")
+echo "Debug: MOVIES_LINE: $MOVIES_LINE"
+
+# Check if the array is empty using regex
+if [[ "$MOVIES_LINE" =~ \[\s*\] ]]; then
+    MOVIES_COUNT=0
+    echo "Debug: Empty movies array detected"
+else
+    MOVIES_COUNT=1
+    echo "Debug: Non-empty movies array detected"
+fi
+echo "Debug: MOVIES_COUNT = '$MOVIES_COUNT'"
+
+# Check if the response contains similar movies
+if echo "$SIMILAR_BODY" | grep -q '"similarMovies"'; then
+    echo "✅ Similar movies field is present"
+else
+    echo "Debug: Response missing 'similarMovies' field"
+    fail-message "Unexpected response structure. Did you make any changes outside the placeholders?"
+    exit 1
+fi
+
+if [ "$MOVIES_COUNT" -gt 0 ]; then
+    echo "✅ Similar movies API is returning movie results"
+    echo "Found movies in similar movies results"
+    
+    # Check if the movies have similarity descriptions
+    if echo "$SIMILAR_BODY" | grep -q '"similarityDescription"'; then
+        # Check if the descriptions are generic fallbacks or AI-generated
+        if echo "$SIMILAR_BODY" | grep -q "Similar to .* in genre and style"; then
+            echo "⚠️  Similar movies found but with generic descriptions"
+            fail-message "It seems the RAG generation may not be implemented. Please complete the challenge."
+        else
+            echo "✅ AI-generated similarity descriptions are working"
+        fi
+    else
+        echo "⚠️  Similarity descriptions not found - RAG generation may not be implemented"
+        fail-message "It seems the RAG generation may not be implemented. Please complete the challenge."
+    fi
+else
+    echo "⚠️  No similar movies found"
+    
+    # This is the key check - if no similar movies are found, the RAG pipeline isn't working
+    fail-message "It seems the RAG generation may not be implemented. Please complete the challenge."
+fi
+
+echo "🎉 RAG pipeline challenge check completed successfully!"
+echo "The similar movies API is working and returning AI-generated explanations."
+exit 0

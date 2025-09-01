@@ -1,0 +1,58 @@
+#!/bin/bash
+set -euo pipefail
+
+# Only stop the application during testing
+if [ "${INSTRUQT_TEST:-false}" != "true" ]; then
+    echo "ℹ️  Not in test mode. Application cleanup not needed."
+    exit 0
+fi
+
+echo "🧪 Test mode detected. Cleaning up application..."
+
+# Check if we have a PID stored from setup
+if [ -f /tmp/test_env ]; then
+    source /tmp/test_env
+fi
+
+if [ -z "${NUXT_PID:-}" ]; then
+    echo "ℹ️  No application PID found. Application may not have been started by setup script."
+    exit 0
+fi
+
+echo "Stopping Nuxt process (PID: $NUXT_PID)..."
+
+# Try graceful shutdown first
+kill $NUXT_PID 2>/dev/null || true
+sleep 3
+
+# Force kill if still running
+if kill -0 $NUXT_PID 2>/dev/null; then
+    echo "Force stopping Nuxt process..."
+    kill -9 $NUXT_PID 2>/dev/null || true
+    sleep 2
+fi
+
+# Verify the application is actually stopped
+echo "Verifying application is stopped..."
+MAX_VERIFY_ATTEMPTS=10
+VERIFY_COUNT=0
+
+while [ $VERIFY_COUNT -lt $MAX_VERIFY_ATTEMPTS ]; do
+    if ! curl -s --connect-timeout 3 "http://localhost:3000/api/admin/stats" > /dev/null 2>&1; then
+        echo "✅ Application successfully stopped"
+        rm -f /tmp/test_env
+        break
+    else
+        echo "⚠️  Application still responding, waiting... (${VERIFY_COUNT}s/${MAX_VERIFY_ATTEMPTS}s)"
+        sleep 1
+        VERIFY_COUNT=$((VERIFY_COUNT + 1))
+    fi
+done
+
+if [ $VERIFY_COUNT -eq $MAX_VERIFY_ATTEMPTS ]; then
+    echo "❌ Failed to stop application after $MAX_VERIFY_ATTEMPTS attempts"
+    echo "Application may still be running on port 3000"
+    exit 1
+fi
+
+echo "🧹 Test cleanup completed successfully!"

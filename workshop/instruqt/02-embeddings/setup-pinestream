@@ -1,0 +1,46 @@
+#!/bin/bash
+set -euo pipefail
+
+# Only start the application during testing
+if [ "${INSTRUQT_TEST:-false}" != "true" ]; then
+    echo "ℹ️  Not in test mode. Please start the application manually with 'pnpm dev'"
+    exit 0
+fi
+
+echo "🧪 Test mode detected. Starting application for testing..."
+
+# Check if application is already running
+if curl -s --connect-timeout 5 "http://localhost:3000/api/admin/stats" > /dev/null 2>&1; then
+    echo "✅ Application is already running"
+    exit 0
+fi
+
+# Navigate to webapp directory and start the application
+cd /app/webapp
+
+echo "Starting Nuxt application..."
+nohup pnpm dev > /tmp/nuxt.log 2>&1 &
+NUXT_PID=$!
+
+echo "Nuxt process started with PID: $NUXT_PID"
+
+# Wait for the application to start
+echo "Waiting for application to start..."
+MAX_WAIT_TIME=30
+WAIT_COUNT=0
+
+while [ $WAIT_COUNT -lt $MAX_WAIT_TIME ]; do
+    if curl -s --connect-timeout 5 "http://localhost:3000/api/admin/stats" > /dev/null 2>&1; then
+        echo "✅ Application started successfully!"
+        echo "NUXT_PID=$NUXT_PID" >> /tmp/test_env
+        exit 0
+    else
+        echo "⏳ Waiting for application to start... (${WAIT_COUNT}s/${MAX_WAIT_TIME}s)"
+        sleep 1
+        WAIT_COUNT=$((WAIT_COUNT + 1))
+    fi
+done
+
+echo "❌ Failed to start application within $MAX_WAIT_TIME seconds"
+echo "Check the logs at /tmp/nuxt.log for errors"
+exit 1
