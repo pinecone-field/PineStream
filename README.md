@@ -37,41 +37,78 @@ This is a **guided coding workshop** where you'll:
 
 ## 🚀 What You'll Build (The Workshop Challenges)
 
-### **Challenge 1: Setup**
+### **Challenge 1: Setup & Introduction**
 
-- **File**: `.env`
-- **Goal**: Understand the project structure and provide own API keys
-- **Learning**: Project structure, API keys, environment variables
+- **Goal**: Understand the project structure and configure API keys
+- **Learning**: Project structure, API keys, environment variables, application exploration
+- **Key Tasks**: 
+  - Set up Pinecone and Groq API keys
+  - Build and run the existing application
+  - Explore current functionality and identify placeholder areas
 
-### **Challenge 2: Dense and Sparse Embeddings**
+### **Challenge 2: Embeddings Generation**
 
-- **File**: `server/api/admin/generate-sparse-embeddings.ts`, `server/api/admin/generate-dense-embeddings.ts`
-- **Goal**: Create sparse embeddings for full movie content
-- **Learning**: Text chunking, vector generation, metadata handling
+- **Files**: `server/api/admin/generate-dense-embeddings.post.ts`, `server/api/admin/generate-sparse-embeddings.post.ts`
+- **Goal**: Create dense and sparse embeddings for movie content
+- **Learning**: Text chunking, vector generation, metadata handling, dense vs sparse embeddings
+- **Key Tasks**:
+  - Implement text chunking strategies for movie plots and overviews
+  - Generate dense embeddings using Pinecone's integrated models
+  - Generate sparse embeddings for lexical matching
+  - Store embeddings with proper metadata
 
 ### **Challenge 3: User Recommendations**
 
 - **File**: `server/api/user/recommendations.ts`
 - **Goal**: Build centroid-based movie recommendations from user preferences
-- **Learning**: Vector mathematics, user preference modeling
+- **Learning**: Vector mathematics, user preference modeling, content-based filtering
+- **Key Tasks**:
+  - Analyze user's watched movies to extract embedding chunks
+  - Calculate vector centroids representing user taste profiles
+  - Find similar movies using vector similarity search
+  - Rank and deduplicate recommendations
 
-### **Challenge 4: Vector Search**
+### **Challenge 4: Semantic Search Implementation**
 
 - **File**: `server/api/search/semantic.ts`
-- **Goal**: Implement similarity search using your embeddings
-- **Learning**: Vector similarity, metadata filtering, search optimization
+- **Goal**: Implement hybrid search combining dense and sparse embeddings
+- **Learning**: Vector similarity, hybrid search strategies, reranking
+- **Key Tasks**:
+  - Implement vector search using Pinecone's API
+  - Combine results from dense and sparse indexes
+  - Apply intelligent reranking using Pinecone's reranker
+  - Support metadata filtering
 
-### **Challenge 5: AI-Enhanced Search**
+### **Challenge 5: Query Expansion & Enhanced Search**
 
 - **File**: `server/api/search/semantic.ts`
-- **Goal**: Add LLM-powered query understanding and reranking
-- **Learning**: LLM integration, query analysis, hybrid search
+- **Goal**: Add AI-powered query understanding and intelligent filtering
+- **Learning**: LLM integration, query analysis, automatic filtering
+- **Key Tasks**:
+  - Use Groq LLM to analyze user queries
+  - Extract implicit filters (genres, time periods)
+  - Generate optimized search terms for different search types
+  - Provide user-friendly insights about search results
 
-### **Challenge 6: RAG Implementation**
+### **Challenge 6: Similar Movies & RAG Pipeline**
 
 - **File**: `server/api/movies/[id]/similar.ts`
-- **Goal**: Implement retrieval and generation for similar movies
-- **Learning**: RAG pattern, LLM integration, movie similarity
+- **Goal**: Implement RAG pattern for finding and explaining similar movies
+- **Learning**: RAG pattern, LLM integration, movie similarity analysis
+- **Key Tasks**:
+  - Use sparse embeddings to find similar movies
+  - Implement the Retrieve → Augment → Generate pattern
+  - Generate AI-powered explanations of movie similarities
+  - Provide rich user insights
+
+### **Challenge 7: Workshop Summary & Review**
+
+- **Goal**: Review accomplishments and understand the complete system
+- **Learning**: System integration, AI patterns, practical applications
+- **Key Tasks**:
+  - Review all implemented features
+  - Understand how components work together
+  - Get comprehensive reference of the codebase
 
 ## 🛠️ Workshop Setup
 
@@ -114,25 +151,7 @@ By the end of this workshop, you'll understand:
 - **Vector Databases**: How to store and search high-dimensional data
 - **Embeddings**: Dense vs. sparse representations and when to use each
 - **AI Patterns**: Vector search, LLM integration, RAG, Query Expansion
+- **Hybrid Search**: Combining multiple search strategies for better results
+- **User Recommendations**: Content-based filtering using vector centroids
+- **Query Understanding**: Using LLMs to enhance search capabilities
 
-## 🆘 Getting Help
-
-### **During the Workshop**
-
-- Your instructor will guide you through each challenge
-- Use the solution files if there is no other way to solve the problem
-
-### **Workshop Tools**
-
-- **Apply solutions**: `node workshop/solve.js [solution-id]`
-- **Restore placeholders**: `node workshop/solve.js restore [solution-id]`
-
-## 🎉 Success Criteria
-
-You'll know you're successful when:
-
-- ✅ Embeddings are generated and stored in Pinecone
-- ✅ User recommendations work based on watched movies
-- ✅ Semantic search returns relevant results
-- ✅ RAG implementation generates AI-powered similarity descriptions
-- ✅ You understand how all the pieces work together
