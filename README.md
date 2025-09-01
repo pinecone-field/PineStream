@@ -48,7 +48,7 @@ This is a **guided coding workshop** where you'll:
 
 ### **Challenge 2: Embeddings Generation**
 
-- **Files**: `server/api/admin/generate-dense-embeddings.post.ts`, `server/api/admin/generate-sparse-embeddings.post.ts`
+- **Files**: [`server/api/admin/generate-dense-embeddings.post.ts`](webapp/server/api/admin/generate-dense-embeddings.post.ts), [`server/api/admin/generate-sparse-embeddings.post.ts`](webapp/server/api/admin/generate-sparse-embeddings.post.ts)
 - **Goal**: Create dense and sparse embeddings for movie content
 - **Learning**: Text chunking, vector generation, metadata handling, dense vs sparse embeddings
 - **Key Tasks**:
@@ -59,7 +59,7 @@ This is a **guided coding workshop** where you'll:
 
 ### **Challenge 3: User Recommendations**
 
-- **File**: `server/api/user/recommendations.ts`
+- **File**: [`server/api/user/recommendations.ts`](webapp/server/api/user/recommendations.ts)
 - **Goal**: Build centroid-based movie recommendations from user preferences
 - **Learning**: Vector mathematics, user preference modeling, content-based filtering
 - **Key Tasks**:
@@ -70,7 +70,7 @@ This is a **guided coding workshop** where you'll:
 
 ### **Challenge 4: Semantic Search Implementation**
 
-- **File**: `server/api/search/semantic.ts`
+- **File**: [`server/api/search/semantic.ts`](webapp/server/api/search/semantic.ts)
 - **Goal**: Implement hybrid search combining dense and sparse embeddings
 - **Learning**: Vector similarity, hybrid search strategies, reranking
 - **Key Tasks**:
@@ -81,7 +81,7 @@ This is a **guided coding workshop** where you'll:
 
 ### **Challenge 5: Query Expansion & Enhanced Search**
 
-- **File**: `server/api/search/semantic.ts`
+- **File**: [`server/api/search/semantic.ts`](webapp/server/api/search/semantic.ts)
 - **Goal**: Add AI-powered query understanding and intelligent filtering
 - **Learning**: LLM integration, query analysis, automatic filtering
 - **Key Tasks**:
@@ -92,7 +92,7 @@ This is a **guided coding workshop** where you'll:
 
 ### **Challenge 6: Similar Movies & RAG Pipeline**
 
-- **File**: `server/api/movies/[id]/similar.ts`
+- **File**: [`server/api/movies/[id]/similar.ts`](webapp/server/api/movies/[id]/similar.ts)
 - **Goal**: Implement RAG pattern for finding and explaining similar movies
 - **Learning**: RAG pattern, LLM integration, movie similarity analysis
 - **Key Tasks**:
@@ -140,9 +140,9 @@ pnpm dev
 
 ### **Workshop Documentation**
 
-- `workshop/WORKSHOP_STEPS.md` - Detailed implementation steps
-- `workshop/WORKSHOP_PLAN.md` - Complete workshop overview
-- `workshop/README.md` - Workshop tool usage
+- [`workshop/WORKSHOP_STEPS.md`](workshop/WORKSHOP_STEPS.md) - Detailed implementation steps
+- [`workshop/WORKSHOP_PLAN.md`](workshop/WORKSHOP_PLAN.md) - Complete workshop overview
+- [`workshop/README.md`](workshop/README.md) - Workshop tool usage
 
 ## 🎓 Learning Objectives
 
