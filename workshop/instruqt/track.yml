@@ -14,8 +14,8 @@ tags: []
 owner: pinecone
 developers:
 - milen@pinecone.io
-maintenance: true
 show_timer: true
+skipping_enabled: true
 idle_timeout: 1800
 timelimit: 18000
 lab_config:
@@ -26,5 +26,5 @@ lab_config:
   - We are now preparing this workshop for you. We appreciate your patience!
   override_challenge_layout: false
   hideStopButton: false
-checksum: "16535008619016850072"
+checksum: "15988428509407947631"
 enhanced_loading: false

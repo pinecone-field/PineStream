@@ -6,4 +6,4 @@ containers:
   ports:
   - 8080
   - 3000
-  memory: 2048
+  memory: 8192
