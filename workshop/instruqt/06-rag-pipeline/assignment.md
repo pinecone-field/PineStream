@@ -4,7 +4,7 @@ id: mzx3qlcop1ai
 type: challenge
 title: Similar Movies & RAG Pipeline
 teaser: This challenge teaches you how to implement a complete RAG pipeline for finding
- and explaining similar movies using retrieval and generation
+  and explaining similar movies using retrieval and generation
 notes:
 - type: text
   contents: |
@@ -59,7 +59,7 @@ In this challenge, you will:
 
 RAG is a powerful AI pattern that combines information retrieval with text generation. You will use it in PineStream to **retrieve** similar movies, **augment** the query with the results, and then **generate** explanations of how any given movie is similar to the current one.
 
-For this challenge, you will assume that if identical words/phrases are used in two movie plots, then the movies are alike. This will allow you to use only the sparse embeddings to find similar movies. 
+For this challenge, you will assume that if identical words/phrases are used in two movie plots, then the movies are alike. This will allow you to use only the sparse embeddings to find similar movies.
 
 # 🕵️ &nbsp; Check the Current Implementation
 ===
@@ -188,7 +188,7 @@ Notice that the similarity descriptions say `Similar to {movie.title} in genre a
 ===
 
 
-Here again, you will use an LLM hosted on Groq Cloud. This time, it is the `llama-3.3-70b-versatile` model, which comes with a larger context window. 
+Here again, you will use an LLM hosted on Groq Cloud. This time, it is the `llama-3.3-70b-versatile` model, which comes with a larger context window.
 
 In the same `server/api/movies/[id]/similar.ts` file, find the `generateSimilarityDescriptions` function. Notice how it's currently returning the generic description you saw earlier. Now paste the following code in the body of the placeholder:
 
@@ -199,12 +199,12 @@ if (!isGroqAvailable) {
 }
 
 // Prepare the base prompt for individual movie comparisons
-const systemPrompt = `You are a movie plot analyzing expert. 
-        The user is viewing a web page that displays a movie details and similar movies. 
+const systemPrompt = `You are a movie plot analyzing expert.
+        The user is viewing a web page that displays a movie details and similar movies.
         You will be given:
       - The title and plot of the a reference movie (the one the page is about)
       - List of similar movies (titles and plots) to compare to the reference movie
-      Your task is to generate one sentence explanation of how each movie in the list 
+      Your task is to generate one sentence explanation of how each movie in the list
       is similar to the reference movie.
       Focus on:
       - Shared themes, plot elements, or character dynamics
@@ -212,9 +212,9 @@ const systemPrompt = `You are a movie plot analyzing expert.
       - Comparable storylines or settings
       - Emotional or narrative similarities
 
-      Explain to the user why the movies are similar (plot, genre, tone, atmosphere, ..). 
-      Keep the description to ONE sentence PER LINE. 
-      Do not output anything but the sentences. 
+      Explain to the user why the movies are similar (plot, genre, tone, atmosphere, ..).
+      Keep the description to ONE sentence PER LINE.
+      Do not output anything but the sentences.
       Do not number the sentences. Do not use bullet points.`;
 
 try {

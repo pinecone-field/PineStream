@@ -3,8 +3,9 @@ slug: workshop-summary
 id: hfek2kzbw7gr
 type: challenge
 title: Workshop Summary & Review
-teaser: This final challenge summarizes everything you've accomplished during the PineStream workshop and provides a comprehensive reference of your AI-powered movie
- platform
+teaser: This final challenge summarizes everything you've accomplished during the
+  PineStream workshop and provides a comprehensive reference of your AI-powered movie
+  platform
 notes:
 - type: text
   contents: |
@@ -117,7 +118,7 @@ Provided intelligent content discovery based on user preferences calculated from
 - **Content-Based Filtering**: Recommending items similar to what users have liked
 
 # 📚 &nbsp; Semantic Search Implementation
-===   
+===
 
 ## What You Solved
 
