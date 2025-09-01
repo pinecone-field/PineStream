@@ -27,7 +27,7 @@ notes:
     In this challenge, you will:
     - Implement vector similarity search using dense and sparse embeddings
     - Implement hybrid search combining the dense and sparse results
-    - Add intelligent re-ranking using Pinecone's reranker
+    - Add intelligent reranking using Pinecone's reranker
 tabs:
 - id: rmo5j8ivorr4
   title: IDE
@@ -48,21 +48,21 @@ difficulty: intermediate
 enhanced_loading: null
 ---
 
-  In this challenge, you will:
+ In this challenge, you will:
   - Implement vector similarity search using dense and sparse embeddings
   - Implement hybrid search combining the dense and sparse results
-  - Add intelligent re-ranking using Pinecone's reranker
+  - Add intelligent reranking using Pinecone's reranker
 
 # 🧠 &nbsp; Understanding Hybrid Search
 ===
 
-You already implemented semantic search using dense embeddings in the previous challenge by searching the vectors similar to the centroid. In this challenge, you will go a step further and implement hybrid search combining the dense and sparse results.
+You already implemented semantic search using dense embeddings in the previous challenge by searching for vectors similar to the centroid. In this challenge, you will go further and implement a hybrid search combining the dense and sparse results.
 
 In a nutshell, the hybrid search process consists of the following steps:
 - performing a dense vector search (semantic similarity)
 - performing a sparse vector search (lexical similarity)
 - combining the results and deduplicating them
-- re-ranking the results
+- reranking the results
 
 # 🕵️ &nbsp; Check the Current Implementation
 ===
@@ -74,7 +74,7 @@ cd /app/webapp
 pnpm dev
 ```
 
-Go to the [PineStream tab](tab-2) and try using the semantic search functionality (✨ icon in the search bar). You can use any of the example queries it provides or write your own. Notice that it does not return any results. That's because the semantic search functionality has not been implemented yet.
+Go to the [PineStream tab](tab-2) and try using the semantic search functionality (✨ icon in the search bar). You can use any example queries it provides or write your own. Notice that it does not return any results. That's because the semantic search functionality has not been implemented yet.
 
 **You will now implement it**!
 
@@ -84,11 +84,11 @@ Go to the [PineStream tab](tab-2) and try using the semantic search functionalit
 The PineStream's semantic search API is implemented in the `server/api/search/semantic.ts` file. Open it in the [IDE tab](tab-0) and find the `doVectorSearch` function.
 
 > [!IMPORTANT]
-> The reason there is a single function is that Pinecone's API for vector search is independent of the index type (dense/sparse). When you send a query targeting a given Pinecone index, it knows the index type and uses the appropriate vector search method.
+> There is a single function because Pinecone's API for vector search is independent of the index type (dense/sparse). When you send a query targeting a given Pinecone index, it knows the index type and uses the appropriate vector search method.
 
-Notice, the function has several arguments - the search text, the limit, the metadata filter, and **the index name**. The endpoint calls this function twice - once for the dense index and once for the sparse index.
+Notice that the function has several arguments: the search text, the limit, the metadata filter, and **the index name**. The endpoint calls this function twice—once for the dense index and once for the sparse index.
 
-To implement it, paste the following code in the body of the placeholder:
+To implement the search request, paste the following code in the body of the placeholder:
 
 ```ts
 // Build the search options for Pinecone
@@ -120,12 +120,12 @@ results.result.hits.forEach((hit) => {
 
 That's it! The function now returns the movie IDs that match the search query.
 
-# 🚀 &nbsp; Implement Re-ranking
+# 🚀 &nbsp; Implement reranking
 ===
 
-After calling the above function twice, the endpoint has two lists of movie IDs that match the search query. It deduplicates them but it has no way of knowing which results are more relevant to the query. While both dense and sparse results have similarity scores, the two types are not directly comparable. Thus the endpoint needs to call a function that will re-rank the results.
+After calling the above function twice, the endpoint has two lists of movie IDs that match the search query. It deduplicates them but does not know which results are more relevant to the query. While both dense and sparse results have similarity scores, the two types are not directly comparable. Thus, the endpoint needs to call a function to rerank the results.
 
-In the same file find the `getHighestRankedMovies`. Notice how it receives the movie IDs, the search text, and the limit. You will now implement it so it returns the top `limit` movies that are most relevant to the search query. Paste the following code in the body of the placeholder:
+In the same file, find the `getHighestRankedMovies`. Notice how it receives the movie IDs, the search text, and the limit. You will now implement it so it returns the top `limit` movies that are most relevant to the search query. Paste the following code in the body of the placeholder:
 
 ```ts
 // Fetch movie plots from database for reranking
@@ -173,13 +173,15 @@ highestRankedMovies = rerankResults.data
   .filter(Boolean); // Remove any null entries
 ```
 
-Your re-ranking implementation:
+Note the `pc.inference.rerank` call. You are calling a reranking service provided by Pinecone, telling it to use the `bge-reranker-v2-m3` model to rerank the results. For more information on the reranker, see [the Pinecone documentation](https://docs.pinecone.io/guides/search/rerank-results#standalone-reranking).
+
+In a nutshell, your reranking implementation:
 1. **Fetches movie data** from the database for the search results
-2. **Prepares text content** for re-ranking (plot, overview, or title)
-3. **Uses Pinecone's re-ranker** to score and reorder results
+2. **Prepares text content** for reranking (plot, overview, or title)
+3. **Uses Pinecone's reranker** to score and reorder results
 4. **Maps results back** to movie objects with similarity scores
 
 # ✅ &nbsp; Test Your Implementation
 ===
 
-Go to the [PineStream tab](tab-2) and try using the semantic search functionality again (✨ icon in the search bar). You can use any of the example queries it provides or write your own.It should return the top 20 movies that are most relevant to the query.
+Go to the [PineStream tab](tab-2) and try using the semantic search functionality again (✨ icon in the search bar). You can use any example queries it provides or write your own. It should return the top 20 most relevant movies to the query.
