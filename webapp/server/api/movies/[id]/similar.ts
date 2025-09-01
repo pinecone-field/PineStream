@@ -24,7 +24,7 @@ async function retrieveSimilarMovies(currentMovie: any) {
   // STEP 3: Extract the highest scored movies from the search results
   //
   //
-  // STEP 6: Get the top 10 movies from the database
+  // STEP 4: Get the top 10 movies from the database
   //
   //
   // ↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑↑
