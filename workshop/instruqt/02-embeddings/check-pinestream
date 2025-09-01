@@ -1,11 +1,10 @@
 #!/bin/bash
 set -euo pipefail
 
-# Check if the stats API is accessible and both indexes have data
 echo "Checking Pinecone indexes via stats API..."
 
 # Check if the application is accessible
-echo "Checking if application is accessible..."
+echo "Checking if the application is accessible..."
 
 # Make a request to the stats API
 echo "Connecting to stats API at http://localhost:3000..."

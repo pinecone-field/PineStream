@@ -12,61 +12,51 @@ CURL_EXIT_CODE=$?
 set -e
 
 if [ $CURL_EXIT_CODE -ne 0 ]; then
-    echo "Debug: curl failed with exit code: $CURL_EXIT_CODE"
     fail-message "Could not connect to semantic search API. Ensure the application is running."
     exit 1
 fi
 
 # Check HTTP status code
 if [ "$HTTP_STATUS" != "200" ]; then
-    echo "Debug: HTTP status code: $HTTP_STATUS"
     fail-message "Semantic search API not responding. Ensure the application is running."
     exit 1
 fi
 
 if [ -z "$SEARCH_BODY" ]; then
-    echo "Debug: Empty response body received"
     fail-message "Unexpected response structure. Did you make any changes outside the placeholders?"
     exit 1
 fi
-
-echo "Semantic search API response: $SEARCH_BODY"
-echo "Debug: Response length: ${#SEARCH_BODY}"
-echo "Debug: First 100 chars: ${SEARCH_BODY:0:100}"
 
 # Check if the response contains movies
 if echo "$SEARCH_BODY" | grep -q '"movies"'; then
     echo "✅ Semantic search API is responding correctly"
 else
-    echo "Debug: Response missing 'movies' field"
     fail-message "Unexpected response structure. Did you make any changes outside the placeholders?"
     exit 1
 fi
 
 # Check if there are actual movies returned
-echo "Debug: Checking if movies array contains results..."
+echo "Checking if movies array contains results..."
 
 # Find the movies line and check if it's empty
 MOVIES_LINE=$(grep '"movies":' <<< "$SEARCH_BODY")
-echo "Debug: MOVIES_LINE: $MOVIES_LINE"
 
 # Check if the array is empty using regex
 if [[ "$MOVIES_LINE" =~ \[\s*\] ]]; then
     MOVIES_COUNT=0
-    echo "Debug: Empty movies array detected"
+    echo "Empty movies array detected"
 else
     MOVIES_COUNT=1
-    echo "Debug: Non-empty movies array detected"
+    echo "Non-empty movies array detected"
 fi
-echo "Debug: MOVIES_COUNT = '$MOVIES_COUNT'"
 
 if [ "$MOVIES_COUNT" -gt 0 ]; then
     echo "✅ Semantic search API is returning movie results"
     echo "Found movies in search results"
 else
     echo "⚠️  No movie results found in semantic search"
-    
     fail-message "It seems the semantic search may not be implemented. Please complete the challenge."
+    exit 1
 fi
 
 echo "🎉 Semantic search challenge check completed successfully!"

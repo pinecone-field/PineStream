@@ -159,9 +159,8 @@ while [ "$DENSE_COMPLETED" = false ] || [ "$SPARSE_COMPLETED" = false ]; do
     set -e
     
     if [ $PROGRESS_EXIT_CODE -eq 0 ]; then
-        # Check dense embeddings progress based on actual API response structure
+        # Check dense embeddings progress
         if [ "$DENSE_COMPLETED" = false ]; then
-            # Check if dense embeddings are completed based on isRunning and processed vs total
             DENSE_IS_RUNNING=$(echo "$PROGRESS_RESPONSE" | sed -n '/"dense":/,/}/p' | grep '"isRunning"' | sed 's/.*"isRunning":\s*\([^,]*\).*/\1/')
             DENSE_PROCESSED=$(echo "$PROGRESS_RESPONSE" | sed -n '/"dense":/,/}/p' | grep '"processed"' | sed 's/.*"processed":\s*\([0-9]*\).*/\1/')
             DENSE_TOTAL=$(echo "$PROGRESS_RESPONSE" | sed -n '/"dense":/,/}/p' | grep '"total"' | sed 's/.*"total":\s*\([0-9]*\).*/\1/')
@@ -178,9 +177,8 @@ while [ "$DENSE_COMPLETED" = false ] || [ "$SPARSE_COMPLETED" = false ]; do
             fi
         fi
         
-        # Check sparse embeddings progress based on actual API response structure
+        # Check sparse embeddings progress
         if [ "$SPARSE_COMPLETED" = false ]; then
-            # Check if sparse embeddings are completed based on isRunning and processed vs total
             SPARSE_IS_RUNNING=$(echo "$PROGRESS_RESPONSE" | sed -n '/"sparse":/,/}/p' | grep '"isRunning"' | sed 's/.*"isRunning":\s*\([^,]*\).*/\1/')
             SPARSE_PROCESSED=$(echo "$PROGRESS_RESPONSE" | sed -n '/"sparse":/,/}/p' | grep '"processed"' | sed 's/.*"processed":\s*\([0-9]*\).*/\1/')
             SPARSE_TOTAL=$(echo "$PROGRESS_RESPONSE" | sed -n '/"sparse":/,/}/p' | grep '"total"' | sed 's/.*"total":\s*\([0-9]*\).*/\1/')

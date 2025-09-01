@@ -12,7 +12,7 @@ CURRENT_DIR=$(pwd)
 cd $SCRIPT_DIR/instruqt
 
 # run the instruqt track test
-instruqt track push
+instruqt track push && \
 instruqt track test --runtime-parameters="PINECONE_API_KEY=$PINECONE_API_KEY,GROQ_API_KEY=$GROQ_API_KEY,INSTRUQT_TEST=true"
 
 # go back to the current directory

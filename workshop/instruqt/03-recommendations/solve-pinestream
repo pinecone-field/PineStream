@@ -33,12 +33,9 @@ if [ "$WATCHED_COUNT" = "0" ] || [ -z "$WATCHED_COUNT" ]; then
         echo "Marking movie ID $MOVIE_ID as watched..."
         
         # Mark the movie as watched using the API
-        echo "Debug: Calling POST /api/user/watched with movieId: $MOVIE_ID"
         MARK_RESPONSE=$(curl -s --connect-timeout 10 --max-time 30 -X POST "http://localhost:3000/api/user/watched" \
             -H "Content-Type: application/json" \
             -d "{\"movieId\": $MOVIE_ID}")
-        
-        echo "Debug: MARK_RESPONSE = '$MARK_RESPONSE'"
         
         if echo "$MARK_RESPONSE" | grep -q '"message"'; then
             echo "✅ Successfully marked movie ID $MOVIE_ID as watched"
