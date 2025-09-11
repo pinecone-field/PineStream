@@ -20,6 +20,7 @@ notes:
     - Semantic Search Implementation
     - Query Expansion & Enhanced Search
     - Similar Movies (RAG Pipeline) &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#128072; ***you're here!***
+    - Workshop Summary & Review
 - type: text
   contents: |
     # Similar Movies & RAG Pipeline
@@ -59,6 +60,10 @@ In this challenge, you will:
 
 RAG is a powerful AI pattern that combines information retrieval with text generation. You will use it in PineStream to **retrieve** similar movies, **augment** the query with the results, and then **generate** explanations of how any given movie is similar to the current one.
 
+> [!NOTE]
+> ### Why we need both retrieval AND generation for similarity descriptions
+> Retrieval alone only gives us raw similarity scores without meaningful explanations, while generation alone would hallucinate recommendations without real data. RAG combines both to provide factual movie matches with human-readable explanations of why they're similar.
+
 For this challenge, you will assume that if identical words/phrases are used in two movie plots, then the movies are alike. This will allow you to use only the sparse embeddings to find similar movies.
 
 # 🕵️ &nbsp; Check the Current Implementation
@@ -78,7 +83,7 @@ Go to the [PineStream tab](tab-2) and navigate to any movie detail page. Notice 
 # 🚀 &nbsp; Implementing the Retrieval Phase
 ===
 
-Go to the [IDE tab](tab-0). Open the file `server/api/movies/[id]/similar.ts` and find the `getSimilarMovies` function. Notice that it always returns an empty result.
+Go to the [IDE tab](tab-0). Open the file `server/api/movies/[id]/similar.ts` and find the `retrieveSimilarMovies` function. Notice that it always returns an empty result.
 
 ## Step 1: Prepare search text and metadata filters
 
@@ -190,7 +195,7 @@ Notice that the similarity descriptions say `Similar to {movie.title} in genre a
 
 Here again, you will use an LLM hosted on Groq Cloud. This time, it is the `llama-3.3-70b-versatile` model, which comes with a larger context window.
 
-In the same `server/api/movies/[id]/similar.ts` file, find the `generateSimilarityDescriptions` function. Notice how it's currently returning the generic description you saw earlier. Now paste the following code in the body of the placeholder:
+Go to the [IDE tab](tab-0). In the same `server/api/movies/[id]/similar.ts` file, find the `generateSimilarityDescriptions` function. Notice how it's currently returning the generic description you saw earlier. Now paste the following code in the body of the placeholder:
 
 ```ts
 // If Groq API is not available, return generic descriptions

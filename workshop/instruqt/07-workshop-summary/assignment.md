@@ -49,6 +49,18 @@ difficulty: basic
 enhanced_loading: null
 ---
 
+> [!IMPORTANT]
+> **Before you finish this workshop, you should clean up your API keys and resources.**
+>
+> Go to [Pinecone Console](https://app.pinecone.io/) and:
+> - Delete the API key you created for this workshop
+> - Delete the indexes you created for this workshop unless you want to use them later
+>
+> Go to [Groq Console](https://console.groq.com/) and:
+> - Delete the API key you created for this workshop
+>
+> **This prevents any accidental charges and keeps your accounts secure!**
+
 You have successfully transformed a basic movie streaming platform into a sophisticated, AI-powered application! Over the course of this workshop, you've implemented cutting-edge AI technologies and learned practical skills that apply to real-world applications.
 
 In this final challenge, you will:
@@ -56,6 +68,7 @@ In this final challenge, you will:
 - Review all the AI-powered features you've implemented
 - Understand how each component works together
 - Get a comprehensive reference of your codebase
+
 
 
 The sections below summarize your accomplishments!

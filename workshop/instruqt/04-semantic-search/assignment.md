@@ -20,6 +20,7 @@ notes:
     - Semantic Search Implementation &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#128072; ***you're here!***
     - Query Expansion
     - Similar Movies (RAG Pipeline)
+    - Workshop Summary & Review
 - type: text
   contents: |
     # Semantic Search Implementation
@@ -123,7 +124,7 @@ That's it! The function now returns the movie IDs that match the search query.
 # 🚀 &nbsp; Implement reranking
 ===
 
-After calling the above function twice, the endpoint has two lists of movie IDs that match the search query. It deduplicates them but does not know which results are more relevant to the query. While both dense and sparse results have similarity scores, the two types are not directly comparable. Thus, the endpoint needs to call a function to rerank the results.
+After calling the above function twice, the endpoint has two lists of movie IDs that match the search query. It deduplicates them but does not know which results are more relevant to the query. While both dense and sparse results have similarity scores, the two types are not directly comparable (scores have different meanings). Thus, the endpoint needs to call a function to rerank the results.
 
 In the same file, find the `getHighestRankedMovies`. Notice how it receives the movie IDs, the search text, and the limit. You will now implement it so it returns the top `limit` movies that are most relevant to the search query. Paste the following code in the body of the placeholder:
 

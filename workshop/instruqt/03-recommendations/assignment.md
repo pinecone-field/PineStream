@@ -20,6 +20,7 @@ notes:
     - Semantic Search Implementation
     - Query Expansion
     - Similar Movies (RAG Pipeline)
+    - Workshop Summary & Review
 - type: text
   contents: |
     # Content-Based User Recommendations
@@ -94,7 +95,7 @@ pnpm dev
 
 Go to the [PineStream tab](tab-2) and navigate to the home page. Notice there's no "Recommended movies" section between the hero banner and the movie grid.
 
-Mark a few movies as watched. Alternatively, you can go to the `Profile` page to randomly select any number of films and mark them as watched. Then return to the home page - you should still see no recommendations. That's because the recommendation logic has not yet been implemented.
+Mark a few movies as watched by toggling the eyeball in the upper left of the movie. Alternatively, you can go to the `Profile` page to randomly select any number of films and mark them as watched. Then return to the home page - you should still see no recommendations. That's because the recommendation logic has not yet been implemented.
 
 **You will implement it in the next steps.**
 

@@ -20,6 +20,7 @@ notes:
     - Semantic Search Implementation
     - Query Expansion
     - Similar Movies (RAG Pipeline)
+    - Workshop Summary & Review
 - type: text
   contents: |
     # Embedding Fundamentals & Generation
@@ -304,7 +305,7 @@ Often, pieces of unstructured data do not have semantic meaning, but their lexic
 
 ## Extract chunks from the movie's plot and overview
 
-Since dense embeddings don't extract meaning but keep track of word/phrase occurrences, the size of the chunks is not important _(as long as it fits in the model's context window)_. So you will create only two sparse chunks per movie - one for the plot and one for the overview.
+Since sparse embeddings don't extract meaning but keep track of word/phrase occurrences, the size of the chunks is not important _(as long as it fits in the model's context window)_. So you will create only two sparse chunks per movie - one for the plot and one for the overview.
 
 Go to the [IDE tab](tab-0). Open the file `server/api/admin/generate-sparse-embeddings.post.ts` and find the `extractChunksForMovie` function.
 

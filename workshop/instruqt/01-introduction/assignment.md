@@ -20,6 +20,7 @@ notes:
     - Semantic Search Implementation
     - Query Expansion
     - Similar Movies (RAG Pipeline)
+    - Workshop Summary & Review
 - type: text
   contents: |
     # Setup & Introduction
@@ -61,7 +62,7 @@ In this challenge, you will:
 
 PineStream is a movie streaming platform that you'll enhance with AI-powered features. It currently has basic functionality such as:
 
-- browsing movies,
+- browsing movies
 - searching for movies by keywords
 - showing movie details
 - marking movies as watched
@@ -147,13 +148,13 @@ Both offer **free plans that are sufficient for the needs of this workshop**!
 1. Go to [Pinecone Console](https://app.pinecone.io/)
 2. Create an account or sign in
 3. Create a new project (or use an existing one)
-4. Create an API key on the "API Keys" page. Save it locally to use it later
+4. Create a new API key for this workshop on the "API Keys" page. Save it locally to use it later.
 
 ### Groq API Key
 
 1. Go to [Groq Console](https://console.groq.com/)
 2. Create an account or sign in
-3. Create an API key on the "API Keys" page. Save it locally to use it later
+3. Create a new API key for this workshop on the "API Keys" page. Save it locally to use it later.
 
 ## Configure The Environment Variables
 

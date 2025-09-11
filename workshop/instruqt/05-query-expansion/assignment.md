@@ -20,6 +20,7 @@ notes:
     - Semantic Search Implementation
     - Query Expansion & Enhanced Search &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&#128072; ***you're here!***
     - Similar Movies (RAG Pipeline)
+    - Workshop Summary & Review
 - type: text
   contents: |
     # Query Expansion & Enhanced Search
@@ -106,7 +107,7 @@ Go to the [PineStream tab](tab-2) and try using the semantic search functionalit
 > [!IMPORTANT]
 > The query expansion system needs an LLM to analyze user queries and extract intelligent insights. You could use OpenAI or any other LLM provider. For this workshop, you will use Groq Cloud. This LLM hosting platform provides ultra-low-latency AI inference for several modern open models. Recall that you set up a Groq account and API key during the first challenge. Now, you will use the Groq API to analyze the user query and extract insights.
 
-As you should recall, the semantic search API is implemented in the `server/api/search/semantic.ts` file. Before it calls the `doVectorSearch` function (which you implemented in the previous challenge), it calls the `getSearchInsight` function to get insights about the search query and prepare what arguments to pass to the `doVectorSearch` function.
+As you should recall, the semantic search API is implemented in the `server/api/search/semantic.ts` file. Before the semantic search API calls the `doVectorSearch` function (which you implemented in the previous challenge), it calls the `getSearchInsight` function to get insights about the search query and prepare what arguments to pass to the `doVectorSearch` function.
 
 Go to the [IDE tab](tab-0). Open the file `server/api/search/semantic.ts` and find the `getSearchInsight` function. Note that currently, it returns an `emptyInsight`. To make it extract insights, put the following code in the body of the placeholder:
 
