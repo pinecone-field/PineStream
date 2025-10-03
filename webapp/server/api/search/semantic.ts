@@ -165,11 +165,15 @@ export default defineEventHandler(async (event) => {
     // Build metadata filter from the insight
     const metadataFilter: any = {};
 
+    let genreFilter: any = "";
+    let startFilter: any = {};
+    let endFilter: any = {};
+
     if (insight.genres && insight.genres.length > 0) {
       // Handle multiple genres - use $in to check if any of the genres exist in the array
       // Ensure genres are lowercase to match how they're stored in embeddings
       const normalizedGenres = insight.genres.map((g) => g.toLowerCase());
-      metadataFilter.genre = { $in: normalizedGenres };
+      genreFilter = { $in: normalizedGenres };
     }
 
     if (insight.dateRange) {
@@ -179,15 +183,22 @@ export default defineEventHandler(async (event) => {
 
       // Build filter with available timestamps
       if (startTimestamp || endTimestamp) {
-        metadataFilter.release_date = {};
         if (startTimestamp) {
-          metadataFilter.release_date.$gte = startTimestamp;
+          startFilter.release_date = {};
+          startFilter.release_date.$gte = startTimestamp;
         }
         if (endTimestamp) {
-          metadataFilter.release_date.$lte = endTimestamp;
+          endFilter.release_date = {};
+          endFilter.release_date.$lte = endTimestamp;
         }
       }
     }
+
+    metadataFilter.$and = [
+      ...(genreFilter ? [{ genre: genreFilter }] : []),
+      startFilter,
+      endFilter,
+    ];
 
     // Perform hybrid search using both dense and sparse embeddings
     const denseQuery = insight.denseQuery || searchText;
